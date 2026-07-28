@@ -1,72 +1,164 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from decimal import Decimal
+
+class SystemSetting(models.Model):
+  """تنظیمات کلی سیستم (قیمت روز داغی و درصد سود)"""
+
+  daghi_price_per_amper = models.DecimalField(
+      max_digits=10, decimal_places=0, verbose_name="قیمت خرید روز داغی (هر آمپر)"
+  )
+  default_profit_percent = models.IntegerField(
+      default=20, verbose_name="درصد سود پیش‌فرض فروش"
+  )
+
+  class Meta:
+    verbose_name = "تنظیمات قیمت داغی و سود"
+    verbose_name_plural = "تنظیمات پایه سیستم"
+
+  def __str__(self):
+    return (
+        f"نرخ داغی: {self.daghi_price_per_amper:,} تومان | سود:"
+        f" {self.default_profit_percent}٪"
+    )
 
 
-class Purchase(models.Model):
-  """مدل فاکتور خرید (بار جدید)"""
+class Brand(models.Model):
+  """جدول برندهای باتری (با قیمت روز فروش هر آمپر)"""
+
+  name = models.CharField(max_length=100, unique=True, verbose_name="نام برند")
+  selling_price_per_amper = models.DecimalField(
+      max_digits=10,
+      decimal_places=0,
+      default=0,
+      verbose_name="قیمت فروش روز هر آمپر (تومان)",
+  )
+
+  class Meta:
+    verbose_name = "برند باتری"
+    verbose_name_plural = "برندها"
+
+  def __str__(self):
+    return f"{self.name} (نرخ روز: {self.selling_price_per_amper:,} تومان)"
+
+
+class PurchaseInvoice(models.Model):
+  """فاکتور اصلی خرید"""
 
   invoice_number = models.CharField(
       max_length=50, unique=True, verbose_name="شماره فاکتور خرید"
   )
-  brand = models.CharField(max_length=100, verbose_name="برند باتری")
-  amperage = models.IntegerField(verbose_name="آمپر باتری")
-  quantity = models.IntegerField(verbose_name="تعداد خریداری شده")
-  purchase_price_per_amper = models.DecimalField(
-      max_digits=12, decimal_places=2, verbose_name="قیمت خرید هر آمپر"
-  )
-  date_purchased = models.DateTimeField(
+  date_purchased = models.DateField(
       default=timezone.now, verbose_name="تاریخ خرید"
   )
+  description = models.TextField(
+      blank=True, null=True, verbose_name="توضیحات"
+  )
+
+  class Meta:
+    verbose_name = "فاکتور خرید"
+    verbose_name_plural = "فاکتورهای خرید"
 
   def __str__(self):
-    return (
-        f"فاکتور {self.invoice_number} - {self.brand} {self.amperage} آمپر (تعداد:"
-        f" {self.quantity})"
-    )
+    return f"فاکتور {self.invoice_number}"
 
+
+class PurchaseItem(models.Model):
+  """آیتم‌های فاکتور خرید"""
+
+  # تعریف لیست انتخابی آمپرها
+  AMPERAGE_CHOICES = (
+      ("50L1", "50L1"),
+      ("50L2", "50L2"),
+      ("55", "55"),
+      ("60", "60"),
+      ("66", "66"),
+      ("70", "70"),
+      ("74", "74"),
+  )
+
+  invoice = models.ForeignKey(
+      PurchaseInvoice,
+      on_delete=models.CASCADE,
+      related_name="items",
+      verbose_name="فاکتور",
+  )
+  brand = models.ForeignKey(
+      Brand, on_delete=models.PROTECT, verbose_name="برند"
+  )
+  amperage = models.CharField(
+      max_length=10,
+      choices=AMPERAGE_CHOICES,
+      default="50L1",
+      verbose_name="آمپر",
+  )
+  quantity = models.IntegerField(verbose_name="تعداد")
+  purchase_price_per_amper = models.DecimalField(
+      max_digits=10, decimal_places=0, verbose_name="قیمت خرید هر آمپر (تومان)"
+  )
+
+  class Meta:
+    verbose_name = "آیتم خرید"
+    verbose_name_plural = "آیتم‌های خرید"
+
+  # متد کمکی برای استخراج مقدار عددی آمپر جهت محاسبات ریاضی (مثلا تبدیل 50L1 به عدد 50)
+  @property
+  def numeric_amperage(self):
+      # رشته را تا قبل از حرف L برمی‌دارد (مثلا از 50L1 فقط 50 را جدا می‌کند)
+      raw_amper = str(self.amperage).split('L')[0]
+      digits = "".join(filter(str.isdigit, raw_amper))
+      return int(digits) if digits else 0
   def save(self, *args, **kwargs):
-    # چک می‌کنیم که آیا این خرید تازه ایجاد شده یا در حال ویرایش است
     is_new = self.pk is None
-    super().save(*args, **kwargs)  # اول خود فاکتور خرید ذخیره می‌شود
+    super().save(*args, **kwargs)
 
-    # اگر خرید جدید باشد، به تعدادِ `quantity` باتری تکی با کد اختصاصی می‌سازیم
+    # ساخت خودکار باتری‌های تکی
     if is_new:
+      brand_code = self.brand.name[0].upper()
       for i in range(1, self.quantity + 1):
-        # تولید یک کد یا سریال یکتا برای هر باتری (مثلا: شماره فاکتور + شماره ترتیب)
-        unique_serial = f"{self.invoice_number}-{self.amperage}-{i}"
+        short_code = (
+            f"{self.invoice.invoice_number}-{brand_code}{self.amperage}-{i}"
+        )
+
+        # محاسبه قیمت خرید واقعی بر اساس عدد آمپر (مثلا ۵۰ * قیمت آمپری)
+        unit_purchase_price = (
+            self.numeric_amperage * self.purchase_price_per_amper
+        )
 
         Battery.objects.create(
-            purchase=self,
+            purchase_item=self,
             brand=self.brand,
             amperage=self.amperage,
-            purchase_price_per_amper=self.purchase_price_per_amper,
-            serial_code=unique_serial,
+            purchase_price=unit_purchase_price,
+            serial_code=short_code,
             status="available",
         )
 
 
 class Battery(models.Model):
-  """مدل باتری‌های تکی (هر باتری یک کد یکتا دارد و به فاکتور خرید وصل است)"""
+  """باتری‌های تکی انبار"""
 
   STATUS_CHOICES = (
       ("available", "موجود در انبار"),
       ("sold", "فروخته شده"),
-      ("returned", "مرجوعی"),
   )
 
-  purchase = models.ForeignKey(
-      Purchase,
-      on_delete=models.CASCADE,
-      related_name="batteries",
-      verbose_name="فاکتور خرید مربوطه",
+  purchase_item = models.ForeignKey(
+      PurchaseItem, on_delete=models.CASCADE, related_name="batteries",null=True
   )
-  brand = models.CharField(max_length=100, verbose_name="برند باتری")
-  amperage = models.IntegerField(verbose_name="آمپر")
-  purchase_price_per_amper = models.DecimalField(
-      max_digits=12, decimal_places=2, verbose_name="قیمت خرید هر آمپر"
+  brand = models.ForeignKey(
+      Brand, on_delete=models.PROTECT, verbose_name="برند"
+  )
+  amperage = models.CharField(max_length=10, verbose_name="آمپر")
+  purchase_price = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
+      verbose_name="قیمت خرید واقعی فاکتور (تومان)",
+      null=True
   )
   serial_code = models.CharField(
-      max_length=100, unique=True, verbose_name="کد/سریال اختصاصی باتری"
+      max_length=50, unique=True, verbose_name="کد کوتاه باتری"
   )
   status = models.CharField(
       max_length=20,
@@ -75,21 +167,30 @@ class Battery(models.Model):
       verbose_name="وضعیت",
   )
 
+  class Meta:
+    verbose_name = "باتری انبار"
+    verbose_name_plural = "موجودی باتری‌ها"
+
+  # متد کمکی برای استخراج مقدار عددی آمپر
+  @property
+  def numeric_amperage(self):
+      # رشته را تا قبل از حرف L برمی‌دارد (مثلا از 50L1 فقط 50 را جدا می‌کند)
+      raw_amper = str(self.amperage).split('L')[0]
+      digits = "".join(filter(str.isdigit, raw_amper))
+      return int(digits) if digits else 0
+
   def __str__(self):
     return (
-        f"{self.brand} ({self.amperage} آمپر) - کد: {self.serial_code} -"
+        f"{self.serial_code} | {self.brand.name} {self.amperage} -"
         f" {self.get_status_display()}"
     )
 
 
 class Sale(models.Model):
-  """مدل فروش باتری (هر فروش شامل یک باتری است)"""
+  """ثبت فروش باتری"""
 
-  # ارتباط با باتری تکی انبار (با انتخاب این باتری، کد، برند و آمپر مشخص می‌شود)
   battery = models.ForeignKey(
-      "Battery",
-      on_delete=models.PROTECT,
-      verbose_name="کد/سریال باتری فروخته شده",
+      Battery, on_delete=models.PROTECT, verbose_name="انتخاب باتری از انبار"
   )
 
   # اطلاعات مشتری
@@ -97,51 +198,97 @@ class Sale(models.Model):
       max_length=150, blank=True, null=True, verbose_name="نام مشتری"
   )
   customer_phone = models.CharField(
-      max_length=20, blank=True, null=True, verbose_name="شماره تلفن مشتری"
+      max_length=20, blank=True, null=True, verbose_name="تلفن مشتری"
   )
   car_plate = models.CharField(
       max_length=50, blank=True, null=True, verbose_name="پلاک ماشین"
   )
-
-  # سریال گارانتی که خودتان دستی وارد می‌کنید
   warranty_serial = models.CharField(
       max_length=100, verbose_name="سریال گارانتی"
   )
 
-  # اطلاعات مالی و نصاب
-  daghi_price = models.DecimalField(
-      max_digits=15,
-      decimal_places=2,
+  # وضعیت داغی و نصاب
+  has_daghi = models.BooleanField(default=True, verbose_name="تحویل داغی دارد؟")
+  installer = models.ForeignKey(
+      User,
+      on_delete=models.SET_NULL,
+      null=True,
+      verbose_name="نصاب / فروشنده",
+  )
+  sale_date = models.DateField(default=timezone.now, verbose_name="تاریخ فروش")
+
+  # فیلدهای مالی خودکار
+  sale_price_without_daghi = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
       default=0,
-      verbose_name="مبلغ داغی تحویل گرفته شده (تومان)",
+      verbose_name="قیمت فروش روز بدون داغی",
   )
-  installer_name = models.CharField(
-      max_length=100, blank=True, null=True, verbose_name="نام شخص نصاب"
+  daghi_discount = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
+      default=0,
+      verbose_name="مبلغ کسر شده داغی",
+  )
+  final_sale_price = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
+      default=0,
+      verbose_name="مبلغ نهایی دریافتی",
   )
 
-  # تاریخ فروش
-  sale_date = models.DateTimeField(default=timezone.now, verbose_name="تاریخ فروش")
 
-  def __str__(self):
-    return (
-        f"فروش باتری {self.battery.serial_code} به"
-        f" {self.customer_name or 'مشتری'}"
-    )
+  class Meta:
+    verbose_name = "فروش باتری"
+    verbose_name_plural = "فاکتورهای فروش"
 
   def save(self, *args, **kwargs):
-      is_new = self.pk is None
-      super().save(*args, **kwargs)
+    # ۱. خواندن تنظیمات کلی سیستم به صورت Decimal ایمن
+    settings = SystemSetting.objects.last()
+    daghi_rate = (
+        Decimal(str(settings.daghi_price_per_amper))
+        if settings
+        else Decimal("40000")
+    )
+    profit_percent = (
+        Decimal(str(settings.default_profit_percent))
+        if settings
+        else Decimal("20")
+    )
 
-      # اگر فروش جدید ثبت شد، وضعیت باتری را به 'فروخته شده' تغییر بده
-      if is_new:
-          self.battery.status = "sold"
-          self.battery.save()
+    # ۲. خواندن نرخ روز فروش برند و آمپر عددی به صورت Decimal
+    current_brand_rate = Decimal(
+        str(self.battery.brand.selling_price_per_amper)
+    )
+    num_amperage = Decimal(str(self.battery.numeric_amperage))
 
-  # خاصیت کمکی برای دسترسی سریع به برند و آمپر از روی باتری
-  @property
-  def battery_brand(self):
-    return self.battery.brand
+    # ۳. محاسبه قیمت فروش پایه روز (آمپر × نرخ روز)
+    base_price = num_amperage * current_brand_rate
 
-  @property
-  def battery_amperage(self):
-    return self.battery.amperage
+    # ۴. قیمت فروش بدون داغی (با درصد سود) -> ضرب Decimal در Decimal
+    profit_factor = Decimal("1") + (profit_percent / Decimal("100"))
+    self.sale_price_without_daghi = base_price * profit_factor
+
+    # ۵. محاسبه تخفیف داغی
+    if self.has_daghi:
+      self.daghi_discount = num_amperage * daghi_rate
+    else:
+      self.daghi_discount = Decimal("0")
+
+    # ۶. مبلغ نهایی دریافتی از مشتری
+    self.final_sale_price = self.sale_price_without_daghi - self.daghi_discount
+
+    # ۷. سود واقعی (قیمت فروش بدون داغی منفی قیمت خرید اولیه)
+    cost = (
+        Decimal(str(self.battery.purchase_price))
+        if self.battery.purchase_price
+        else Decimal("0")
+    )
+    self.profit = self.sale_price_without_daghi - cost
+
+    is_new = self.pk is None
+    super().save(*args, **kwargs)
+
+    if is_new:
+      self.battery.status = "sold"
+      self.battery.save()
