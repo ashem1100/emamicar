@@ -1,141 +1,13 @@
-{% load static %}
+
+{% extends 'base.html' %}
 {% load humanize %}
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد مدیریتی انبار و داغی باتری</title>
+{% block extra_css %}
+<style>
+   /* استایل‌های قبلی کارت‌ها و جدول داشبوردت اینجا باشه */
+</style>
+{% endblock %}
 
-    <!-- Bootstrap RTL Local -->
-    <link rel="stylesheet" href="{% static 'css/bootstrap.rtl.css' %}">
-
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Vazirmatn Persian Font -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            min-height: 100vh;
-        }
-
-        .navbar-custom {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .stat-card {
-            background: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            height: 100%;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            flex-shrink: 0;
-        }
-
-        /* Gradients */
-        .bg-gradient-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-        .bg-gradient-amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .bg-gradient-emerald { background: linear-gradient(135deg, #10b981, #047857); }
-        .bg-gradient-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
-        .bg-gradient-sky { background: linear-gradient(135deg, #0284c7, #0369a1); }
-
-        .content-card {
-            background: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-        }
-
-        /* استایل جدول تیره */
-        .table-dark-custom {
-            --bs-table-bg: transparent;
-            --bs-table-color: #f1f5f9;
-            margin-bottom: 0;
-        }
-
-        .table-dark-custom th {
-            background-color: #0f172a !important;
-            color: #94a3b8 !important;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            padding: 14px 16px;
-        }
-
-        .table-dark-custom td {
-            background-color: #1e293b !important;
-            color: #f8fafc !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            padding: 14px 16px;
-            vertical-align: middle;
-        }
-
-        .table-dark-custom tr:hover td {
-            background-color: #334155 !important;
-        }
-
-        .badge-amber {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.4);
-        }
-
-
-        /* جلوگیری از کلفت شدن باکس فیلتر در موبایل */
-        .filter-scroll-wrapper {
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* برای مرورگرهای مدرن */
-            padding-bottom: 4px;
-        }
-
-        .filter-scroll-wrapper::-webkit-scrollbar {
-            display: none; /* مخفی کردن نوار اسکرول زشت در کروم و سافاری */
-        }
-
-        .filter-btn-group .btn {
-            font-size: 0.825rem;
-            padding-top: 6px;
-            padding-bottom: 6px;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top py-3">
-        <div class="container-fluid px-3 px-md-4">
-            <a class="navbar-brand text-white fw-bold d-flex align-items-center gap-2" href="#">
-                <i class="fa-solid fa-car-battery text-warning fs-4 me-1"></i>
-                <span class="fs-6 fs-md-5">سامانه مدیریت انبار و فروش باتری</span>
-            </a>
-            <div class="d-flex align-items-center gap-3">
-                <a href="/admin/" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                    <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> بازگشت به ادمین
-                </a>
-            </div>
-        </div>
-    </nav>
+{% block content %}
 
     <!-- Main Container -->
     <div class="container-fluid px-3 px-md-4 py-4">
@@ -318,7 +190,4 @@
 
     </div>
 
-    <!-- Bootstrap Local JS -->
-    <script src="{% static 'js/bootstrap.bundle.js' %}"></script>
-</body>
-</html>
+ {% endblock %}

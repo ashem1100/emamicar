@@ -1,10 +1,123 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% load static %}
 
-</body>
-</html>
+{% block extra_css %}
+<style>
+    /* استایل‌های اختصاصی کارت‌های نمودار */
+    .chart-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Main Container -->
+    <div class="container-fluid px-3 px-md-4 py-4">
+
+        <div class="mb-4">
+            <h3 class="fw-bold mb-1 fs-4 fs-md-3">📈 گزارش‌های بصری و تحلیلی</h3>
+            <p class="text-secondary small mb-0">بررسی محبوبیت برندها، پرفروش‌ترین آمپرها و روند درآمدی مغازه</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- نمودار ۱: روند درآمد فروش -->
+            <div class="col-12 col-lg-8">
+                <div class="chart-card">
+                    <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-chart-area me-2" style="color: #34d399;"></i>روند درآمد فروش (ماهانه)</h5>
+                    <div style="position: relative; width:100%; height:300px;">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نمودار ۲: سهم فروش برندها -->
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="chart-card">
+                    <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-pie-chart me-2 text-warning"></i>سهم فروش برندها</h5>
+                    <div style="position: relative; width:100%; height:300px;">
+                        <canvas id="brandChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- نمودار ۳: پرفروش‌ترین آمپرها -->
+            <div class="col-12 col-md-6 col-lg-12">
+                <div class="chart-card">
+                    <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-bolt me-2 text-info"></i>پرفروش‌ترین آمپرها</h5>
+                    <div style="position: relative; width:100%; height:300px;">
+                        <canvas id="amperChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <!-- افزودن کتابخانه Chart.js (این خط مفقود شده بود!) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // تنظیمات عمومی Chart.js برای تم تاریک
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Vazirmatn';
+
+        // ۱. نمودار خطی درآمد
+        new Chart(document.getElementById('salesTrendChart'), {
+            type: 'line',
+            data: {
+                labels: {{ monthly_labels|safe }},
+                datasets: [{
+                    label: 'درآمد فروش (تومان)',
+                    data: {{ monthly_amounts|safe }},
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // ۲. نمودار دایره‌ای برندها
+        new Chart(document.getElementById('brandChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ brand_labels|safe }},
+                datasets: [{
+                    data: {{ brand_counts|safe }},
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // ۳. نمودار میله‌ای آمپرها
+        new Chart(document.getElementById('amperChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ amper_labels|safe }},
+                datasets: [{
+                    label: 'تعداد فروخته شده',
+                    data: {{ amper_counts|safe }},
+                    backgroundColor: '#38bdf8',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
+{% endblock %}
