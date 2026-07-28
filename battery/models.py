@@ -186,8 +186,21 @@ class Battery(models.Model):
     )
 
 
+
 class Sale(models.Model):
   """ثبت فروش باتری"""
+
+  # لیست انتخابی آمپرهای داغی
+  DAGHI_AMPERAGE_CHOICES = (
+      ("50", "50 آمپر"),
+      ("55", "55 آمپر"),
+      ("60", "60 آمپر"),
+      ("66", "66 آمپر"),
+      ("70", "70 آمپر"),
+      ("74", "74 آمپر"),
+      ("90", "90 آمپر"),
+      ("100", "100 آمپر"),
+  )
 
   battery = models.ForeignKey(
       Battery, on_delete=models.PROTECT, verbose_name="انتخاب باتری از انبار"
@@ -209,6 +222,18 @@ class Sale(models.Model):
 
   # وضعیت داغی و نصاب
   has_daghi = models.BooleanField(default=True, verbose_name="تحویل داغی دارد؟")
+  daghi_amperage = models.CharField(
+      max_length=10,
+      choices=DAGHI_AMPERAGE_CHOICES,
+      blank=True,
+      null=True,
+      verbose_name="آمپر داغی تحویلی (در صورت متفاوت بودن)",
+      help_text=(
+          "اگر خالی بماند، به صورت خودکار برابر با آمپر باتری نو محاسبه"
+          " می‌شود."
+      ),
+  )
+
   installer = models.ForeignKey(
       User,
       on_delete=models.SET_NULL,
@@ -237,13 +262,20 @@ class Sale(models.Model):
       verbose_name="مبلغ نهایی دریافتی",
   )
 
-
   class Meta:
     verbose_name = "فروش باتری"
     verbose_name_plural = "فاکتورهای فروش"
 
+  # متد استخراج عدد از آمپر داغی
+  @property
+  def numeric_daghi_amperage(self):
+    if self.daghi_amperage:
+      digits = "".join(filter(str.isdigit, str(self.daghi_amperage)))
+      return int(digits) if digits else self.battery.numeric_amperage
+    return self.battery.numeric_amperage
+
   def save(self, *args, **kwargs):
-    # ۱. خواندن تنظیمات کلی سیستم به صورت Decimal ایمن
+    # ۱. خواندن تنظیمات کلی سیستم به صورت Decimal
     settings = SystemSetting.objects.last()
     daghi_rate = (
         Decimal(str(settings.daghi_price_per_amper))
@@ -256,22 +288,23 @@ class Sale(models.Model):
         else Decimal("20")
     )
 
-    # ۲. خواندن نرخ روز فروش برند و آمپر عددی به صورت Decimal
+    # ۲. مقادیر مربوط به باتری نو انتخاب شده
     current_brand_rate = Decimal(
         str(self.battery.brand.selling_price_per_amper)
     )
-    num_amperage = Decimal(str(self.battery.numeric_amperage))
+    new_battery_amperage = Decimal(str(self.battery.numeric_amperage))
 
-    # ۳. محاسبه قیمت فروش پایه روز (آمپر × نرخ روز)
-    base_price = num_amperage * current_brand_rate
+    # ۳. قیمت پایه فروش روز (آمپر باتری نو × نرخ روز)
+    base_price = new_battery_amperage * current_brand_rate
 
-    # ۴. قیمت فروش بدون داغی (با درصد سود) -> ضرب Decimal در Decimal
+    # ۴. قیمت فروش بدون داغی (با درصد سود)
     profit_factor = Decimal("1") + (profit_percent / Decimal("100"))
     self.sale_price_without_daghi = base_price * profit_factor
 
-    # ۵. محاسبه تخفیف داغی
+    # ۵. محاسبه کسر داغی بر اساس «آمپر داغی تحویلی»
     if self.has_daghi:
-      self.daghi_discount = num_amperage * daghi_rate
+      actual_daghi_amper = Decimal(str(self.numeric_daghi_amperage))
+      self.daghi_discount = actual_daghi_amper * daghi_rate
     else:
       self.daghi_discount = Decimal("0")
 
