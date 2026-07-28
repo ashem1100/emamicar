@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load jalali_tags %} <!-- لود کردن تگ‌های تاریخ شمسی -->
+
+{% block extra_css %}
+<style>
+    .invoice-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+    }
+
+    .invoice-header {
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+        padding-bottom: 20px;
+    }
+
+    .info-box {
+        background: #0f172a;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* اصلاح کامل بهم‌ریختگی نمایش پلاک */
+    .plate-badge {
+        background: #ffffff;
+        color: #000000;
+        border: 2px solid #000000;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-weight: bold;
+        display: inline-block;
+        direction: ltr !important; /* اجبار جهت به چپ‌به‌راست */
+        unicode-bidi: isolate;     /* جلوگیری از تداخل کاراکترهای فارسی و عدد */
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+    }
+
+    /* تنظیمات مخصوص پرینت فاکتور */
+    @media print {
+        body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        nav, .no-print {
+            display: none !important;
+        }
+        .invoice-card {
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+        .info-box {
+            background: #f8fafc !important;
+            color: #000000 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        .text-white, .text-secondary, .text-info, .text-warning {
+            color: #000000 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- دکمه‌های بالای فاکتور -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <a href="{% url 'sale_list' %}" class="btn btn-outline-light rounded-pill px-4">
+            <i class="fa-solid fa-arrow-right me-1"></i> بازگشت به لیست فروش‌ها
+        </a>
+        <button onclick="window.print()" class="btn btn-primary rounded-pill px-4">
+            <i class="fa-solid fa-print me-1"></i> چاپ / دریافت PDF فاکتور
+        </button>
+    </div>
+
+    <!-- کارت اصلی فاکتور -->
+    <div class="invoice-card p-4 p-md-5 max-w-3xl mx-auto shadow-lg">
+
+        <!-- هدر فاکتور -->
+        <div class="invoice-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1 text-white d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-warning fs-3"></i>
+                    فاکتور فروش باتری
+                </h4>
+                <p class="text-secondary small mb-0">شماره فاکتور: #{{ sale.id }}</p>
+            </div>
+            <div class="text-md-end">
+                <!-- تبدیل تاریخ میلادی به شمسی -->
+                <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill mb-1 d-inline-block">
+                    تاریخ: {{ sale.sale_date|to_jalali:'%Y/%m/%d' }}
+                </span>
+            </div>
+        </div>
+
+        <!-- اطلاعات مشتری و خودرو -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+                <div class="info-box h-100">
+                    <span class="text-secondary small d-block mb-1">مشخصات خریدار:</span>
+                    <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"خریدار ناپیدا" }}</h5>
+                    <p class="text-secondary small mb-0">
+                        <i class="fa-solid fa-phone me-1 text-info"></i>
+                        {{ sale.customer_phone|default:"شماره تماس ثبت نشده" }}
+                    </p>
+                </div>
+            </div>
+            <!-- کارت پلاک خودرو با طراحی واقعی و بدون بهم‌ریختگی -->
+            <div class="col-12 col-md-6">
+    <div class="info-box h-100 d-flex flex-column justify-content-center">
+        <span class="text-secondary small d-block mb-2">پلاک خودرو ثبت شده:</span>
+        <div>
+            {% if sale.car_plate %}
+                {% with plate=sale.formatted_plate_parts %}
+                    {% if plate %}
+                        <!-- پلاک کاملاً واقعی و شبیه‌سازی شده ایران -->
+                        <div class="d-inline-flex align-items-stretch bg-white text-dark rounded-2 border border-2 border-dark overflow-hidden fw-bold shadow-sm" style="direction: ltr; font-family: 'Vazirmatn', sans-serif;">
+
+                            <!-- ۱. نوار آبی پرچم (سمت چپ) -->
+                            <div class="bg-primary text-white d-flex flex-column justify-content-center align-items-center px-1" style="font-size: 0.55rem; width: 22px;">
+                                <span>🇮🇷</span>
+                                <span>I.R.</span>
+                            </div>
+
+                            <!-- ۲. دو رقم اول -->
+                            <div class="px-2 py-1 fs-5 d-flex align-items-center">
+                                {{ plate.p1 }}
+                            </div>
+
+                            <!-- ۳. حرف فارسی (مثلا ب) -->
+                            <div class="px-1 py-1 fs-5 d-flex align-items-center text-primary">
+                                {{ plate.p2 }}
+                            </div>
+
+                            <!-- ۴. سه رقم دوم -->
+                            <div class="px-2 py-1 fs-5 d-flex align-items-center">
+                                {{ plate.p3 }}
+                            </div>
+
+                            <!-- ۵. بخش کد ایران (سمت راست - با خط جداکننده) -->
+                            <div class="border-start border-2 border-dark px-2 py-1 d-flex flex-column align-items-center justify-content-center bg-light" style="min-width: 45px;">
+                                <span style="font-size: 0.6rem; line-height: 1;" class="text-secondary">ایران</span>
+                                <span class="fs-6 lh-1 mt-1">{{ plate.iran }}</span>
+                            </div>
+
+                        </div>
+                    {% else %}
+                        <!-- نمایش پشتیبان در صورت متفاوت بودن فرمت متنی -->
+                        <div class="badge bg-white text-dark border border-dark dir-ltr fs-6">
+                            {{ sale.car_plate }}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            {% else %}
+                <span class="text-secondary">بدون پلاک</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+        </div>
+
+        <!-- جزئیات باتری فروخته شده -->
+        <div class="info-box mb-4">
+            <h6 class="fw-bold text-white mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                <i class="fa-solid fa-car-battery me-2 text-warning"></i>مشخصات باتری فروخته شده
+            </h6>
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <span class="text-secondary small d-block mb-1">برند باتری:</span>
+                    <strong class="text-white">{{ sale.battery.brand.name }}</strong>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-secondary small d-block mb-1">آمپراژ:</span>
+                    <strong class="text-white">{{ sale.battery.amperage }} آمپر</strong>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-secondary small d-block mb-1">سریال اختصاصی باتری:</span>
+                    <strong class="text-info">{{ sale.battery.serial_code }}</strong>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-secondary small d-block mb-1">سریال گارانتی:</span>
+                    <strong class="text-warning">{{ sale.warranty_serial|default:"---" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- اطلاعات تکنسین و وضعیت داغی -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+                <div class="info-box">
+                    <span class="text-secondary small d-block mb-1">نصاب / تکنسین:</span>
+                    <strong class="text-white">
+                        {% if sale.installer %}
+                            {{ sale.installer.get_full_name|default:sale.installer.username }}
+                        {% else %}
+                            ثبت نشده
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="info-box">
+                    <span class="text-secondary small d-block mb-1">وضعیت تحویل داغی:</span>
+                    {% if sale.has_daghi %}
+                        <span class="badge bg-success fs-6"><i class="fa-solid fa-check me-1"></i>تحویل گرفته شد ({{ sale.numeric_daghi_amperage }} آمپر)</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6"><i class="fa-solid fa-xmark me-1"></i>بدون داغی</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- محاسبات مالی -->
+        <div class="info-box bg-dark p-4 rounded-3 border border-secondary border-opacity-25">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-secondary">قیمت پایه باتری (بدون کسر داغی):</span>
+                <span class="text-white fw-bold">{{ sale.sale_price_without_daghi|intcomma }} تومان</span>
+            </div>
+            {% if sale.has_daghi %}
+            <div class="d-flex justify-content-between align-items-center mb-2 text-warning">
+                <span>تخفیف کسر داغی:</span>
+                <span>- {{ sale.daghi_discount|intcomma }} تومان</span>
+            </div>
+            {% endif %}
+            <hr class="border-secondary opacity-25 my-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-white">مبلغ نهایی پرداختی:</h5>
+                <h4 class="fw-bold mb-0 text-success fs-3">{{ sale.final_sale_price|intcomma }} تومان</h4>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

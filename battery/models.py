@@ -261,10 +261,38 @@ class Sale(models.Model):
       default=0,
       verbose_name="مبلغ نهایی دریافتی",
   )
+  discount = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
+      default=Decimal('0'),
+      verbose_name='مبلغ تخفیف (تومان)',
+      help_text='مبلغ تخفیف دستی که از فاکتور کسر می‌شود',
+  )
 
   class Meta:
     verbose_name = "فروش باتری"
     verbose_name_plural = "فاکتورهای فروش"
+
+  @property
+  def formatted_plate_parts(self):
+      """تجزیه پلاک ذخیره شده به ۴ بخش برای نمایش واقعی استاندارد"""
+      if not self.car_plate:
+          return None
+
+      # مثلا رشته: "12 ب 345 - ایران 68"
+      try:
+          parts = self.car_plate.split(' - ایران ')
+          main_part = parts[0].strip().split(' ')  # ['12', 'ب', '345']
+          iran_code = parts[1].strip() if len(parts) > 1 else ''
+
+          return {
+              'p1': main_part[0] if len(main_part) > 0 else '',
+              'p2': main_part[1] if len(main_part) > 1 else '',
+              'p3': main_part[2] if len(main_part) > 2 else '',
+              'iran': iran_code,
+          }
+      except Exception:
+          return None
 
   # متد استخراج عدد از آمپر داغی
   @property
