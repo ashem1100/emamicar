@@ -7,7 +7,7 @@ from .models import Battery, Brand, PurchaseInvoice, PurchaseItem, Sale
 import json
 from django.db.models.functions import ExtractMonth
 from django.http import JsonResponse
-
+import jdatetime
 
 @staff_member_required
 def dashboard_view(request):
@@ -84,63 +84,68 @@ def dashboard_view(request):
 
 @staff_member_required
 def analytics_view(request):
-  # ۱. آمار فروش به تفکیک برند (برای نمودار دایره‌ای)
-  brand_sales = (
-      Sale.objects.values('battery__brand__name')
-      .annotate(total_count=Count('id'), total_amount=Sum('final_sale_price'))
-      .order_by('-total_count')
-  )
+    # دریافت تاریخ‌های شمسی از ورودی (مثلاً 1403/05/01)
+    start_date_shamsi = request.GET.get('start_date', '')
+    end_date_shamsi = request.GET.get('end_date', '')
 
-  brand_labels = [item['battery__brand__name'] for item in brand_sales]
-  brand_counts = [item['total_count'] for item in brand_sales]
+    sales_queryset = Sale.objects.all()
 
-  # ۲. آمار فروش به تفکیک آمپر (برای نمودار دونات)
-  amper_sales = (
-      Sale.objects.values('battery__amperage')
-      .annotate(total_count=Count('id'))
-      .order_by('-total_count')
-  )
+    # تبدیل تاریخ شمسی به میلادی برای فیلتر دیتابیس
+    if start_date_shamsi:
+        try:
+            parts = [int(x) for x in start_date_shamsi.split('/')]
+            start_gregorian = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+            sales_queryset = sales_queryset.filter(sale_date__gte=start_gregorian)
+        except ValueError:
+            pass
 
-  amper_labels = [f"{item['battery__amperage']} آمپر" for item in amper_sales]
-  amper_counts = [item['total_count'] for item in amper_sales]
+    if end_date_shamsi:
+        try:
+            parts = [int(x) for x in end_date_shamsi.split('/')]
+            end_gregorian = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+            sales_queryset = sales_queryset.filter(sale_date__lte=end_gregorian)
+        except ValueError:
+            pass
 
-  # ۳. آمار روند فروش ماهانه (برای نمودار خطی)
-  monthly_sales = (
-      Sale.objects.annotate(month=ExtractMonth('sale_date'))
-      .values('month')
-      .annotate(total_amount=Sum('final_sale_price'), count=Count('id'))
-      .order_by('month')
-  )
+    # ۱. آمار برندها
+    brand_sales = sales_queryset.values('battery__brand__name').annotate(
+        total_count=Count('id')
+    ).order_by('-total_count')
 
-  month_names = {
-      1: 'فروردین',
-      2: 'اردیبهشت',
-      3: 'خرداد',
-      4: 'تیر',
-      5: 'مرداد',
-      6: 'شهریور',
-      7: 'مهر',
-      8: 'آبان',
-      9: 'آذر',
-      10: 'دی',
-      11: 'بهمن',
-      12: 'اسفند',
-  }
-  monthly_labels = [
-      month_names.get(item['month'], str(item['month']))
-      for item in monthly_sales
-  ]
-  monthly_amounts = [
-      float(item['total_amount'] or 0) for item in monthly_sales
-  ]
+    brand_labels = [item['battery__brand__name'] for item in brand_sales]
+    brand_counts = [item['total_count'] for item in brand_sales]
 
-  context = {
-      'brand_labels': json.dumps(brand_labels),
-      'brand_counts': json.dumps(brand_counts),
-      'amper_labels': json.dumps(amper_labels),
-      'amper_counts': json.dumps(amper_counts),
-      'monthly_labels': json.dumps(monthly_labels),
-      'monthly_amounts': json.dumps(monthly_amounts),
-  }
+    # ۲. آمار آمپرها
+    amper_sales = sales_queryset.values('battery__amperage').annotate(
+        total_count=Count('id')
+    ).order_by('-total_count')
 
-  return render(request, 'analytics.html', context)
+    amper_labels = [f"{item['battery__amperage']} آمپر" for item in amper_sales]
+    amper_counts = [item['total_count'] for item in amper_sales]
+
+    # ۳. آمار روند فروش
+    monthly_sales = sales_queryset.annotate(
+        month=ExtractMonth('sale_date')
+    ).values('month').annotate(
+        total_amount=Sum('final_sale_price')
+    ).order_by('month')
+
+    month_names = {
+        1: 'فروردین', 2: 'اردیبهشت', 3: 'خرداد', 4: 'تیر', 5: 'مرداد', 6: 'شهریور',
+        7: 'مهر', 8: 'آبان', 9: 'آذر', 10: 'دی', 11: 'بهمن', 12: 'اسفند'
+    }
+    monthly_labels = [month_names.get(item['month'], str(item['month'])) for item in monthly_sales]
+    monthly_amounts = [float(item['total_amount'] or 0) for item in monthly_sales]
+
+    context = {
+        'brand_labels': json.dumps(brand_labels),
+        'brand_counts': json.dumps(brand_counts),
+        'amper_labels': json.dumps(amper_labels),
+        'amper_counts': json.dumps(amper_counts),
+        'monthly_labels': json.dumps(monthly_labels),
+        'monthly_amounts': json.dumps(monthly_amounts),
+        'start_date': start_date_shamsi,
+        'end_date': end_date_shamsi,
+    }
+
+    return render(request, 'analytics.html', context)

@@ -2,32 +2,80 @@
 {% load static %}
 
 {% block extra_css %}
+<!-- استایل تقویم شمسی -->
+<link rel="stylesheet" href="https://unpkg.com/jalalidatepicker/dist/jalalidatepicker.min.css">
+
 <style>
-    /* استایل‌های اختصاصی کارت‌های نمودار */
-    .chart-card {
+    .chart-card, .filter-card {
         background: #1e293b;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        padding: 20px;
-        height: 100%;
+    }
+
+    /* اصلاح استایل کادرهای ورودی تاریخ */
+    .form-control-dark {
+        background-color: #334155 !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+        border-radius: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+    }
+
+    /* روشن کردن متن راهنما (Placeholder) */
+    .form-control-dark::placeholder {
+        color: #94a3b8 !important;
+        opacity: 1;
+    }
+
+    .form-control-dark:focus {
+        background-color: #475569 !important;
+        color: #ffffff !important;
+        border-color: #38bdf8 !important;
+        box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-    <!-- Main Container -->
     <div class="container-fluid px-3 px-md-4 py-4">
 
-        <div class="mb-4">
-            <h3 class="fw-bold mb-1 fs-4 fs-md-3">📈 گزارش‌های بصری و تحلیلی</h3>
-            <p class="text-secondary small mb-0">بررسی محبوبیت برندها، پرفروش‌ترین آمپرها و روند درآمدی مغازه</p>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h3 class="fw-bold mb-1 fs-4 fs-md-3">📈 گزارش‌های بصری و تحلیلی</h3>
+                <p class="text-secondary small mb-0">بررسی محبوبیت برندها، پرفروش‌ترین آمپرها و روند درآمدی مغازه</p>
+            </div>
+        </div>
+
+        <!-- فرم فیلتر با تقویم شمسی -->
+        <div class="filter-card p-3 mb-4">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-12 col-sm-5 col-md-4">
+                    <label class="form-label text-secondary small mb-1">از تاریخ (شمسی):</label>
+                    <input type="text" name="start_date" value="{{ start_date }}" data-jdp placeholder="مثلا: 1403/01/01" class="form-control form-control-dark">
+                </div>
+                <div class="col-12 col-sm-5 col-md-4">
+                    <label class="form-label text-secondary small mb-1">تا تاریخ (شمسی):</label>
+                    <input type="text" name="end_date" value="{{ end_date }}" data-jdp placeholder="مثلا: 1403/05/30" class="form-control form-control-dark">
+                </div>
+                <div class="col-12 col-sm-2 col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 flex-grow-1 flex-md-grow-0">
+                        <i class="fa-solid fa-filter me-1"></i> اعمال فیلتر
+                    </button>
+                    {% if start_date or end_date %}
+                        <a href="{% url 'battery_analytics' %}" class="btn btn-outline-secondary rounded-pill px-3" title="پاکسازی">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
         </div>
 
         <div class="row g-4">
             <!-- نمودار ۱: روند درآمد فروش -->
             <div class="col-12 col-lg-8">
-                <div class="chart-card">
-                    <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-chart-area me-2" style="color: #34d399;"></i>روند درآمد فروش (ماهانه)</h5>
+                <div class="chart-card p-3">
+                    <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-chart-area me-2" style="color: #34d399;"></i>روند درآمد فروش</h5>
                     <div style="position: relative; width:100%; height:300px;">
                         <canvas id="salesTrendChart"></canvas>
                     </div>
@@ -36,7 +84,7 @@
 
             <!-- نمودار ۲: سهم فروش برندها -->
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="chart-card">
+                <div class="chart-card p-3">
                     <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-pie-chart me-2 text-warning"></i>سهم فروش برندها</h5>
                     <div style="position: relative; width:100%; height:300px;">
                         <canvas id="brandChart"></canvas>
@@ -46,7 +94,7 @@
 
             <!-- نمودار ۳: پرفروش‌ترین آمپرها -->
             <div class="col-12 col-md-6 col-lg-12">
-                <div class="chart-card">
+                <div class="chart-card p-3">
                     <h5 class="fw-bold mb-3 fs-6 fs-md-5"><i class="fa-solid fa-bolt me-2 text-info"></i>پرفروش‌ترین آمپرها</h5>
                     <div style="position: relative; width:100%; height:300px;">
                         <canvas id="amperChart"></canvas>
@@ -58,15 +106,26 @@
 {% endblock %}
 
 {% block extra_js %}
-    <!-- افزودن کتابخانه Chart.js (این خط مفقود شده بود!) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- اسکریپت تقویم شمسی -->
+    <script src="https://unpkg.com/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
 
     <script>
-        // تنظیمات عمومی Chart.js برای تم تاریک
+        // فعال‌سازی تقویم شمسی روی اینپوت‌ها
+        jalaliDatepicker.startWatch({
+            separatorChar: "/",
+            minDate: "attr",
+            maxDate: "attr",
+            changeMonthRotateYear: true,
+            showTodayBtn: true,
+            showEmptyBtn: true
+        });
+
+        // تنظیمات عمومی Chart.js
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.font.family = 'Vazirmatn';
 
-        // ۱. نمودار خطی درآمد
+        // ۱. نمودار خطی
         new Chart(document.getElementById('salesTrendChart'), {
             type: 'line',
             data: {
@@ -80,13 +139,10 @@
                     tension: 0.4
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // ۲. نمودار دایره‌ای برندها
+        // ۲. نمودار دایره‌ای
         new Chart(document.getElementById('brandChart'), {
             type: 'doughnut',
             data: {
@@ -96,13 +152,10 @@
                     backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#6366f1']
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // ۳. نمودار میله‌ای آمپرها
+        // ۳. نمودار میله‌ای
         new Chart(document.getElementById('amperChart'), {
             type: 'bar',
             data: {
@@ -114,10 +167,7 @@
                     borderRadius: 8
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
+            options: { responsive: true, maintainAspectRatio: false }
         });
     </script>
 {% endblock %}
