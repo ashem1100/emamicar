@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-white"><i class="fa-solid fa-users-gear text-info me-2"></i> مدیریت مالی نصاب‌ها</h4>
+    </div>
+
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr class="text-secondary">
+                        <th class="ps-4">نام نصاب</th>
+                        <th>کل درآمد (تومان)</th>
+                        <th>تسویه شده (تومان)</th>
+                        <th>موجودی قابل تسویه</th>
+                        <th class="text-center pe-4">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in installers %}
+                    <tr>
+                        <td class="ps-4 fw-bold">{{ item.user.get_full_name|default:item.user.username }}</td>
+                        <td class="text-info">{{ item.total_earned|intcomma }}</td>
+                        <td class="text-danger">{{ item.total_payout|intcomma }}</td>
+                        <td class="text-success fw-bold fs-5">{{ item.balance|intcomma }}</td>
+                        <td class="text-center pe-4">
+                            <a href="{% url 'installer_payout' item.user.id %}" class="btn btn-sm btn-outline-warning rounded-pill px-3 {% if item.balance <= 0 %}disabled{% endif %}">
+                                <i class="fa-solid fa-money-bill-transfer"></i> تسویه حساب
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

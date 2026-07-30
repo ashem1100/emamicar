@@ -12,6 +12,10 @@ class SystemSetting(models.Model):
   default_profit_percent = models.IntegerField(
       default=20, verbose_name="درصد سود پیش‌فرض فروش"
   )
+  installation_fee = models.DecimalField(
+      max_digits=10, decimal_places=0, default=250000,
+      verbose_name="اجرت نصب پایه (تومان)"
+  )
 
   class Meta:
     verbose_name = "تنظیمات قیمت داغی و سود"
@@ -351,5 +355,40 @@ class Sale(models.Model):
     super().save(*args, **kwargs)
 
     if is_new:
-      self.battery.status = 'sold'
-      self.battery.save()
+        self.battery.status = 'sold'
+        self.battery.save()
+
+        # ثبت اتوماتیک اجرت نصب در کیف پول نصاب
+        if self.installer:
+            settings = SystemSetting.objects.last()
+            fee_amount = settings.installation_fee if settings else Decimal('250000')
+
+            if fee_amount > 0:
+                InstallerTransaction.objects.create(
+                    installer=self.installer,
+                    transaction_type='earn',
+                    amount=fee_amount,
+                    sale=self,
+                    description=f'اجرت نصب فاکتور شماره {self.id} (پلاک: {self.car_plate})'
+                )
+
+
+class InstallerTransaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('earn', 'درآمد اجرت (بستانکار)'),
+        ('payout', 'تسویه حساب (بدهکار)'),
+    )
+
+    installer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions', verbose_name="نصاب")
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES, verbose_name="نوع تراکنش")
+    amount = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="مبلغ (تومان)")
+    sale = models.ForeignKey('Sale', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="بابت فاکتور")
+    description = models.CharField(max_length=255, blank=True, null=True, verbose_name="توضیحات")
+    date = models.DateField(default=timezone.now, verbose_name="تاریخ تراکنش")
+
+    class Meta:
+        verbose_name = "تراکنش نصاب"
+        verbose_name_plural = "کیف پول نصاب‌ها"
+
+    def __str__(self):
+        return f"{self.installer.username} - {self.get_transaction_type_display()} - {self.amount}"

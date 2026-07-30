@@ -14,6 +14,12 @@ urlpatterns = [
 # مسیرهای ورود و خروج
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    # مسیرهای مدیریت کیف پول نصاب‌ها (برای ادمین)
+    path('installers/', installer_management_view, name='installer_management'),
+    path('installers/payout/<int:user_id>/', installer_payout_view, name='installer_payout'),
+
+    # مسیر کیف پول نصاب (برای پنل خودش)
+    path('panel/wallet/', installer_wallet_view, name='installer_wallet'),
 
 ]
 

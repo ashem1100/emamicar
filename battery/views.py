@@ -1,18 +1,20 @@
+
 from datetime import timedelta
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q, DecimalField
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import Battery, Brand, PurchaseInvoice, PurchaseItem, Sale
+from .models import *
 import json
 from django.db.models.functions import ExtractMonth
 from django.http import JsonResponse
 import jdatetime
 from django.contrib import messages
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from collections import defaultdict
+from django.db.models.functions import Coalesce
+from decimal import Decimal
 
 
 @staff_member_required
@@ -458,3 +460,109 @@ def installer_sale_list_view(request):
       'end_date': end_date,
   }
   return render(request, 'installer_sale_list.html', context)
+
+
+@staff_member_required
+def installer_management_view(request):
+  """مدیریت کیف پول تمامی کاربران و نصاب‌ها توسط ادمین"""
+
+  # حذف exclude برای نمایش تمامی کاربران سیستم
+  users = User.objects.annotate(
+      total_earned=Coalesce(
+          Sum(
+              'transactions__amount',
+              filter=Q(transactions__transaction_type='earn'),
+          ),
+          Decimal('0'),
+          output_field=DecimalField(),
+      ),
+      total_payout=Coalesce(
+          Sum(
+              'transactions__amount',
+              filter=Q(transactions__transaction_type='payout'),
+          ),
+          Decimal('0'),
+          output_field=DecimalField(),
+      ),
+  ).order_by('username')  # مرتب‌سازی بر اساس نام کاربری
+
+  installers_data = []
+  for u in users:
+    balance = (u.total_earned or Decimal('0')) - (
+        u.total_payout or Decimal('0')
+    )
+    installers_data.append({
+        'user': u,
+        'total_earned': u.total_earned,
+        'total_payout': u.total_payout,
+        'balance': balance,
+    })
+
+  return render(
+      request, 'installer_management.html', {'installers': installers_data}
+  )
+
+@staff_member_required
+def installer_payout_view(request, user_id):
+    """فرم تسویه حساب با نصاب"""
+    installer = get_object_or_404(User, id=user_id)
+
+    # محاسبه موجودی فعلی
+    earned = \
+    InstallerTransaction.objects.filter(installer=installer, transaction_type='earn').aggregate(s=Sum('amount'))[
+        's'] or 0
+    payout = \
+    InstallerTransaction.objects.filter(installer=installer, transaction_type='payout').aggregate(s=Sum('amount'))[
+        's'] or 0
+    balance = earned - payout
+
+    if request.method == 'POST':
+        amount = request.POST.get('amount')
+        description = request.POST.get('description', 'تسویه حساب')
+        date_str = request.POST.get('date')  # تاریخ شمسی از فرم
+
+        try:
+            # تبدیل تاریخ شمسی به میلادی
+            p = [int(x) for x in date_str.split('/')]
+            g_date = jdatetime.date(p[0], p[1], p[2]).togregorian()
+
+            InstallerTransaction.objects.create(
+                installer=installer,
+                transaction_type='payout',
+                amount=amount,
+                description=description,
+                date=g_date
+            )
+            messages.success(request, f'مبلغ {amount} تومان با موفقیت برای {installer.get_full_name()} تسویه شد.')
+            return redirect('installer_management')
+        except Exception as e:
+            messages.error(request, f'خطا در ثبت تسویه: {e}')
+
+    context = {
+        'installer': installer,
+        'balance': balance,
+        'today': jdatetime.date.today().strftime('%Y/%m/%d')
+    }
+    return render(request, 'installer_payout.html', context)
+
+
+# ==========================================
+# بخش پنل اختصاصی نصاب
+# ==========================================
+
+@login_required
+def installer_wallet_view(request):
+    """مشاهده کیف پول و تاریخچه توسط خود نصاب"""
+    transactions = InstallerTransaction.objects.filter(installer=request.user).order_by('-date', '-id')
+
+    earned = transactions.filter(transaction_type='earn').aggregate(s=Sum('amount'))['s'] or 0
+    payout = transactions.filter(transaction_type='payout').aggregate(s=Sum('amount'))['s'] or 0
+    balance = earned - payout
+
+    context = {
+        'transactions': transactions,
+        'balance': balance,
+        'total_earned': earned,
+        'total_payout': payout
+    }
+    return render(request, 'installer_wallet.html', context)

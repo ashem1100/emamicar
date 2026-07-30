@@ -43,33 +43,49 @@
         </div>
     </div>
 
-    <!-- باکس‌های دسترسی سریع -->
+<!-- باکس‌های دسترسی سریع (۳ ستونه) -->
     <div class="row g-4 mt-2">
-        <div class="col-md-6">
+        <!-- کارت ۱: ثبت فاکتور -->
+        <div class="col-md-4">
             <div class="welcome-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center shadow-sm action-btn">
                 <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                     <i class="fa-solid fa-cart-plus fs-3"></i>
                 </div>
                 <h5 class="fw-bold text-white">ثبت فاکتور جدید</h5>
                 <p class="text-secondary small mb-4">فروش جدیدی انجام داده‌اید؟ فاکتور آن را همین الان ثبت کنید.</p>
-                <a href="{% url 'installer_sale_create' %}" class="btn btn-info px-5 rounded-pill fw-bold text-dark w-100">
+                <a href="{% url 'installer_sale_create' %}" class="btn btn-info px-4 rounded-pill fw-bold text-dark w-100 mt-auto">
                     ورود به فرم ثبت
                 </a>
             </div>
         </div>
-        <div class="col-md-6">
+
+        <!-- کارت ۲: لیست فروش -->
+        <div class="col-md-4">
             <div class="welcome-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center shadow-sm action-btn">
                 <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
                     <i class="fa-solid fa-list-check fs-3"></i>
                 </div>
                 <h5 class="fw-bold text-white">لیست فروش‌های من</h5>
-                <p class="text-secondary small mb-4">مشاهده سوابق فاکتورهای ثبت شده توسط شما و جزئیات مالی.</p>
-                <a href="{% url 'installer_sale_list' %}" class="btn btn-warning px-5 rounded-pill fw-bold text-dark w-100">
+                <p class="text-secondary small mb-4">مشاهده سوابق فاکتورهای ثبت شده توسط شما و جزئیات باتری‌ها.</p>
+                <a href="{% url 'installer_sale_list' %}" class="btn btn-warning px-4 rounded-pill fw-bold text-dark w-100 mt-auto">
                     مشاهده لیست
                 </a>
             </div>
         </div>
-    </div>
 
+        <!-- کارت ۳: کیف پول من (جدید) -->
+        <div class="col-md-4">
+            <div class="welcome-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center shadow-sm action-btn">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <i class="fa-solid fa-wallet fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-white">کیف پول و تسویه</h5>
+                <p class="text-secondary small mb-4">مشاهده موجودی اجرت نصب و پیگیری تاریخچه تسویه‌حساب‌ها.</p>
+                <a href="{% url 'installer_wallet' %}" class="btn btn-success px-4 rounded-pill fw-bold text-white w-100 mt-auto" style="background: linear-gradient(135deg, #10b981, #047857); border: none;">
+                    مشاهده کیف پول
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

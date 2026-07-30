@@ -2,20 +2,27 @@ from django import forms
 from django.contrib import admin
 from django.db import models
 from jalali_date.admin import ModelAdminJalaliMixin
-from .models import Battery, Brand, PurchaseInvoice, PurchaseItem, Sale, SystemSetting
+from .models import *
 
 
+# ۱. مدیریت تنظیمات سیستم (یکپارچه‌شده)
 @admin.register(SystemSetting)
 class SystemSettingAdmin(admin.ModelAdmin):
-  list_display = ('daghi_price_per_amper', 'default_profit_percent')
+  list_display = (
+      'installation_fee',
+      'daghi_price_per_amper',
+      'default_profit_percent',
+  )
 
 
+# ۲. مدیریت برندها
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
   list_display = ('name', 'selling_price_per_amper')
   list_editable = ('selling_price_per_amper',)
 
 
+# ۳. مدیریت فاکتورهای خرید
 class PurchaseItemInline(admin.TabularInline):
   model = PurchaseItem
   extra = 1
@@ -27,6 +34,7 @@ class PurchaseInvoiceAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
   inlines = [PurchaseItemInline]
 
 
+# ۴. مدیریت باتری‌های انبار
 @admin.register(Battery)
 class BatteryAdmin(admin.ModelAdmin):
   list_display = (
@@ -40,14 +48,13 @@ class BatteryAdmin(admin.ModelAdmin):
   search_fields = ('serial_code',)
 
 
-# فرم سفارشی برای رفع باگ نمایش پلاک در SaleAdmin
+# ۵. فرم سفارشی برای رفع باگ نمایش پلاک در SaleAdmin
 class SaleAdminForm(forms.ModelForm):
 
   class Meta:
     model = Sale
     fields = '__all__'
     widgets = {
-        # تنظیم جهت فیلد پلاک به LTR جهت جلوگیری از جابه‌جایی اعداد و حروف فارسی
         'car_plate': forms.TextInput(
             attrs={
                 'style': (
@@ -60,9 +67,10 @@ class SaleAdminForm(forms.ModelForm):
     }
 
 
+# ۶. مدیریت فروش‌ها
 @admin.register(Sale)
 class SaleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
-  form = SaleAdminForm  # اضافه کردن فرم سفارشی
+  form = SaleAdminForm
 
   list_display = (
       'battery',
@@ -89,7 +97,6 @@ class SaleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
       object_id = request.resolver_match.kwargs.get('object_id')
 
       if object_id:
-        # موقع ویرایش فاکتور: باتری‌های موجود + همین باتری فروخته‌شده را نشان بده
         sale_instance = self.get_object(request, object_id)
         if sale_instance and sale_instance.battery:
           kwargs['queryset'] = Battery.objects.filter(
@@ -97,7 +104,31 @@ class SaleAdmin(ModelAdminJalaliMixin, admin.ModelAdmin):
               | models.Q(pk=sale_instance.battery.pk)
           )
       else:
-        # موقع ثبت جدید: فقط باتری‌های موجود را نشان بده
         kwargs['queryset'] = Battery.objects.filter(status='available')
 
     return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# ۷. امکان مدیریت تسویه‌ها و تراکنش‌های کیف پول نصاب‌ها
+@admin.register(InstallerTransaction)
+class InstallerTransactionAdmin(admin.ModelAdmin):
+  list_display = (
+      'installer',
+      'transaction_type',
+      'formatted_amount',
+      'date',
+      'description',
+  )
+  list_filter = ('transaction_type', 'date', 'installer')
+  search_fields = (
+      'installer__username',
+      'installer__first_name',
+      'installer__last_name',
+      'description',
+  )
+  date_hierarchy = 'date'
+
+  def formatted_amount(self, obj):
+    return f'{obj.amount:,} تومان'
+
+  formatted_amount.short_description = 'مبلغ'
