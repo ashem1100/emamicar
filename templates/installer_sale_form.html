@@ -1,0 +1,119 @@
+{% extends 'installer_base.html' %}
+
+{% block extra_css %}
+<!-- استایل‌ها دقیقاً مشابه فرم اصلی است -->
+<style>
+    .form-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
+    .form-dark { background-color: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; border-radius: 8px; }
+    .form-dark:focus { background-color: #0f172a; color: #fff; border-color: #38bdf8; }
+    .plate-box { display: flex; align-items: center; background: #fff; color: #000; border-radius: 8px; border: 2px solid #000; overflow: hidden; max-width: 320px; }
+    .plate-box input, .plate-box select { border: none; text-align: center; font-weight: bold; font-size: 1.1rem; background: transparent; padding: 6px; }
+    .plate-box input:focus { outline: none; }
+    .daghi-container { background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="form-card p-4 max-w-2xl mx-auto">
+        <h4 class="fw-bold mb-4 text-white d-flex align-items-center gap-2">
+            <i class="fa-solid fa-user-gear text-info"></i>
+            ثبت فاکتور فروش
+        </h4>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} mb-3">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label text-secondary small">انتخاب باتری از انبار (*):</label>
+                <select name="battery" class="form-select form-dark" required>
+                    <option value="">-- انتخاب باتری --</option>
+                    {% for b in available_batteries %}
+                        <option value="{{ b.id }}">{{ b.serial_code }} | {{ b.brand.name }} - {{ b.amperage }} آمپر</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small">نام خریدار:</label>
+                    <input type="text" name="customer_name" class="form-control form-dark">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small">تلفن مشتری:</label>
+                    <input type="text" name="customer_phone" class="form-control form-dark" placeholder="09123456789">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-secondary small d-block">پلاک خودرو:</label>
+                <div class="plate-box" style="direction: ltr;">
+                    <input type="text" name="plate_1" maxlength="2" placeholder="12" style="width: 45px;" required>
+                    <select name="plate_2" style="width: 55px;" required>
+                        <option value="الف">الف</option><option value="ب">ب</option><option value="ج">ج</option><option value="د">د</option>
+                        <option value="س">س</option><option value="ص">ص</option><option value="ط">ط</option><option value="ق">ق</option>
+                        <option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option><option value="و">و</option><option value="هـ">هـ</option><option value="ی">ی</option>
+                    </select>
+                    <input type="text" name="plate_3" maxlength="3" placeholder="345" style="width: 60px;" required>
+                    <div class="d-flex align-items-center border-start border-2 border-dark bg-light px-1" style="height: 100%;">
+                        <span class="text-secondary me-1" style="font-size: 0.7rem;">ایران</span>
+                        <input type="text" name="plate_4" maxlength="2" placeholder="68" style="width: 40px;" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بخش تغییر یافته: نمایش اطلاعات نصاب به صورت فقط‌خواندنی -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label text-info small">نصب توسط:</label>
+                    <!-- ورودی disabled است تا نتواند تغییرش دهد و name هم ندارد تا ارسال نشود -->
+                    <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small">سریال گارانتی (*):</label>
+                    <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="سریال گارانتی">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-warning small fw-bold">مبلغ تخفیف دستی (تومان):</label>
+                    <input type="number" name="discount" class="form-control form-dark" placeholder="مثلاً: 50000" min="0" step="1000">
+                </div>
+            </div>
+
+            <!-- وضعیت داغی -->
+            <div class="daghi-container mb-4">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" name="has_daghi" id="daghiCheck" checked onchange="toggleDaghiFields(this.checked)">
+                    <label class="form-check-label text-warning fw-bold" for="daghiCheck">⚡ تحویل داغی دارد؟</label>
+                </div>
+                <div id="daghiFields" class="mt-3">
+                    <label class="form-label text-secondary small">آمپر داغی تحویلی (اگر متفاوت با باتری نو است):</label>
+                    <select name="daghi_amperage" class="form-select form-dark">
+                        <option value="">هم‌اندازه با باتری نو (پیش‌فرض)</option>
+                        {% for val, label in daghi_choices %}
+                            <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-info w-100 py-2.5 fw-bold text-dark shadow-sm">
+                <i class="fa-solid fa-check me-1"></i> ثبت فاکتور
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleDaghiFields(checked) {
+        document.getElementById('daghiFields').style.display = checked ? 'block' : 'none';
+    }
+</script>
+{% endblock %}

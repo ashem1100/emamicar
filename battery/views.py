@@ -11,7 +11,7 @@ from django.http import JsonResponse
 import jdatetime
 from django.contrib import messages
 from django.db.models import Q
-
+from django.contrib.auth.decorators import login_required
 from collections import defaultdict
 
 
@@ -310,3 +310,151 @@ def sale_create_view(request):
       'daghi_choices': daghi_choices,
   }
   return render(request, 'sale_form.html', context)
+
+
+@login_required
+def installer_dashboard_view(request):
+    """داشبورد اختصاصی نصاب برای مشاهده فاکتورهای خودش"""
+    # فقط فاکتورهایی که این کاربر (نصاب) ثبت کرده را فیلتر می‌کنیم
+    my_sales = Sale.objects.filter(installer=request.user).order_by('-sale_date')
+
+    context = {
+        'my_sales': my_sales,
+    }
+    return render(request, 'installer_dashboard.html', context)
+
+
+@login_required
+def installer_sale_create_view(request):
+    """ثبت فاکتور اختصاصی نصاب (بدون قابلیت تغییر نصاب)"""
+    if request.method == 'POST':
+        battery_id = request.POST.get('battery')
+        customer_name = request.POST.get('customer_name')
+        customer_phone = request.POST.get('customer_phone')
+        warranty_serial = request.POST.get('warranty_serial')
+
+        # دریافت مبلغ تخفیف
+        discount_raw = request.POST.get('discount', '0')
+        try:
+            discount_val = int(discount_raw) if discount_raw else 0
+        except ValueError:
+            discount_val = 0
+
+        p1 = request.POST.get('plate_1', '').strip()
+        p2 = request.POST.get('plate_2', '').strip()
+        p3 = request.POST.get('plate_3', '').strip()
+        p4 = request.POST.get('plate_4', '').strip()
+        car_plate = f'{p1} {p2} {p3} - ایران {p4}' if (p1 and p3) else ''
+
+        has_daghi = request.POST.get('has_daghi') == 'on'
+        daghi_amperage = request.POST.get('daghi_amperage', '') if has_daghi else None
+
+        if not battery_id or not warranty_serial:
+            messages.error(request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.')
+        else:
+            try:
+                battery = Battery.objects.get(id=battery_id, status='available')
+
+                # نکته امنیتی مهم: نصاب مستقیماً کاربری است که لاگین کرده است
+                installer_user = request.user
+
+                Sale.objects.create(
+                    battery=battery,
+                    customer_name=customer_name,
+                    customer_phone=customer_phone,
+                    car_plate=car_plate,
+                    warranty_serial=warranty_serial,
+                    has_daghi=has_daghi,
+                    daghi_amperage=daghi_amperage,
+                    installer=installer_user,  # <--- تخصیص اجباری و خودکار
+                    discount=discount_val,
+                )
+
+                messages.success(request, 'فاکتور فروش با موفقیت در پنل شما ثبت شد.')
+                return redirect('installer_dashboard')
+
+            except Exception as e:
+                messages.error(request, f'خطا در ثبت فاکتور: {e}')
+
+    available_batteries = Battery.objects.filter(status='available').select_related('brand')
+    daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
+
+    context = {
+        'available_batteries': available_batteries,
+        'daghi_choices': daghi_choices,
+    }
+    return render(request, 'installer_sale_form.html', context)
+
+
+@login_required
+def installer_dashboard_view(request):
+    """داشبورد اختصاصی نصاب - فقط صفحه خوش‌آمدگویی و دسترسی سریع"""
+    return render(request, 'installer_dashboard.html')
+
+
+@login_required
+def installer_sale_list_view(request):
+  """لیست فاکتورهای فروش ثبت شده توسط همین نصاب با قابلیت فیلتر کامل"""
+
+  # ۱. فقط فاکتورهای همین نصاب
+  my_sales = (
+      Sale.objects.filter(installer=request.user)
+      .select_related('battery', 'battery__brand')
+      .order_by('-sale_date')
+  )
+
+  # ۲. جستجوی متنی (نام، تلفن، پلاک، سریال باتری)
+  search_query = request.GET.get('search', '').strip()
+  if search_query:
+    my_sales = my_sales.filter(
+        Q(customer_name__icontains=search_query)
+        | Q(customer_phone__icontains=search_query)
+        | Q(car_plate__icontains=search_query)
+        | Q(battery__serial_code__icontains=search_query)
+    )
+
+  # ۳. فیلتر برند و آمپر
+  brand_id = request.GET.get('brand', '')
+  amperage = request.GET.get('amperage', '')
+  if brand_id:
+    my_sales = my_sales.filter(battery__brand_id=brand_id)
+  if amperage:
+    my_sales = my_sales.filter(battery__amperage=amperage)
+
+  # ۴. فیلتر بازه تاریخ شمسی
+  start_date = request.GET.get('start_date', '').strip()
+  end_date = request.GET.get('end_date', '').strip()
+
+  if start_date:
+    try:
+      p = [int(x) for x in start_date.split('/')]
+      my_sales = my_sales.filter(
+          sale_date__gte=jdatetime.date(p[0], p[1], p[2]).togregorian()
+      )
+    except (ValueError, IndexError):
+      pass
+
+  if end_date:
+    try:
+      p = [int(x) for x in end_date.split('/')]
+      my_sales = my_sales.filter(
+          sale_date__lte=jdatetime.date(p[0], p[1], p[2]).togregorian()
+      )
+    except (ValueError, IndexError):
+      pass
+
+  # ۵. داده‌های مورد نیاز برای drop-downها
+  brands = Brand.objects.all()
+  amperages = Battery.objects.values_list('amperage', flat=True).distinct()
+
+  context = {
+      'my_sales': my_sales,
+      'brands': brands,
+      'amperages': amperages,
+      'search_query': search_query,
+      'selected_brand': int(brand_id) if brand_id.isdigit() else '',
+      'selected_amperage': amperage,
+      'start_date': start_date,
+      'end_date': end_date,
+  }
+  return render(request, 'installer_sale_list.html', context)

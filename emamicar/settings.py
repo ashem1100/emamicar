@@ -123,3 +123,12 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
+
+# مسیر صفحه لاگین
+LOGIN_URL = 'login'
+
+# بعد از لاگین موفق، اگر مسیر خاصی مدنظر نبود، به این آدرس برود
+LOGIN_REDIRECT_URL = 'installer_dashboard'
+
+# بعد از خروج (Logout) به صفحه لاگین برگردد
+LOGOUT_REDIRECT_URL = 'login'
