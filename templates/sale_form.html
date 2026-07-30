@@ -93,10 +93,10 @@
                 </div>
             </div>
 
-            <!-- نصاب و گارانتی -->
+<!-- نصاب، گارانتی و تخفیف -->
             <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                    <label class="form-label text-secondary small">نصاب / فروشنده (User):</label>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small">نصاب / فروشنده:</label>
                     <select name="installer" class="form-select form-dark">
                         <option value="">-- انتخاب نصاب --</option>
                         {% for user in users %}
@@ -104,9 +104,13 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label text-secondary small">سریال گارانتی (*):</label>
-                    <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="سریال گارانتی را وارد کنید">
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small">سریال باتری (*):</label>
+                    <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="سریال باتری را وارد کنید">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-warning small fw-bold">مبلغ تخفیف دستی (تومان):</label>
+                    <input type="number" name="discount" class="form-control form-dark" placeholder="مثلاً: 50000" min="0" step="1000">
                 </div>
             </div>
 
@@ -122,7 +126,7 @@
                 <div id="daghiFields" class="mt-3">
                     <label class="form-label text-secondary small">آمپر داغی تحویلی (اگر متفاوت با باتری نو است):</label>
                     <select name="daghi_amperage" class="form-select form-dark">
-                        <option value="">هم‌اندازه با باتری نو (پیش‌فرض)</option>
+                        <option value="">هم‌ آمپر با باتری نو (پیش‌فرض)</option>
                         {% for val, label in daghi_choices %}
                             <option value="{{ val }}">{{ label }}</option>
                         {% endfor %}

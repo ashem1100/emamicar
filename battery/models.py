@@ -190,47 +190,46 @@ class Battery(models.Model):
 class Sale(models.Model):
   """ثبت فروش باتری"""
 
-  # لیست انتخابی آمپرهای داغی
   DAGHI_AMPERAGE_CHOICES = (
-      ("50", "50 آمپر"),
-      ("55", "55 آمپر"),
-      ("60", "60 آمپر"),
-      ("66", "66 آمپر"),
-      ("70", "70 آمپر"),
-      ("74", "74 آمپر"),
-      ("90", "90 آمپر"),
-      ("100", "100 آمپر"),
+      ('50', '50 آمپر'),
+      ('55', '55 آمپر'),
+      ('60', '60 آمپر'),
+      ('66', '66 آمپر'),
+      ('70', '70 آمپر'),
+      ('74', '74 آمپر'),
+      ('90', '90 آمپر'),
+      ('100', '100 آمپر'),
   )
 
   battery = models.ForeignKey(
-      Battery, on_delete=models.PROTECT, verbose_name="انتخاب باتری از انبار"
+      Battery, on_delete=models.PROTECT, verbose_name='انتخاب باتری از انبار'
   )
 
   # اطلاعات مشتری
   customer_name = models.CharField(
-      max_length=150, blank=True, null=True, verbose_name="نام مشتری"
+      max_length=150, blank=True, null=True, verbose_name='نام مشتری'
   )
   customer_phone = models.CharField(
-      max_length=20, blank=True, null=True, verbose_name="تلفن مشتری"
+      max_length=20, blank=True, null=True, verbose_name='تلفن مشتری'
   )
   car_plate = models.CharField(
-      max_length=50, blank=True, null=True, verbose_name="پلاک ماشین"
+      max_length=50, blank=True, null=True, verbose_name='پلاک ماشین'
   )
   warranty_serial = models.CharField(
-      max_length=100, verbose_name="سریال گارانتی"
+      max_length=100, verbose_name='سریال گارانتی'
   )
 
   # وضعیت داغی و نصاب
-  has_daghi = models.BooleanField(default=True, verbose_name="تحویل داغی دارد؟")
+  has_daghi = models.BooleanField(default=True, verbose_name='تحویل داغی دارد؟')
   daghi_amperage = models.CharField(
       max_length=10,
       choices=DAGHI_AMPERAGE_CHOICES,
       blank=True,
       null=True,
-      verbose_name="آمپر داغی تحویلی (در صورت متفاوت بودن)",
+      verbose_name='آمپر داغی تحویلی (در صورت متفاوت بودن)',
       help_text=(
-          "اگر خالی بماند، به صورت خودکار برابر با آمپر باتری نو محاسبه"
-          " می‌شود."
+          'اگر خالی بماند، به صورت خودکار برابر با آمپر باتری نو محاسبه'
+          ' می‌شود.'
       ),
   )
 
@@ -238,118 +237,119 @@ class Sale(models.Model):
       User,
       on_delete=models.SET_NULL,
       null=True,
-      verbose_name="نصاب / فروشنده",
+      verbose_name='نصاب / فروشنده',
   )
-  sale_date = models.DateField(default=timezone.now, verbose_name="تاریخ فروش")
+  sale_date = models.DateField(default=timezone.now, verbose_name='تاریخ فروش')
+
+  # فیلد تخفیف دستی
+  discount = models.DecimalField(
+      max_digits=12,
+      decimal_places=0,
+      default=Decimal('0'),
+      verbose_name='مبلغ تخفیف (تومان)',
+      help_text='مبلغ تخفیفی که دستی از فاکتور کسر می‌شود',
+  )
 
   # فیلدهای مالی خودکار
   sale_price_without_daghi = models.DecimalField(
       max_digits=12,
       decimal_places=0,
       default=0,
-      verbose_name="قیمت فروش روز بدون داغی",
+      verbose_name='قیمت فروش روز بدون داغی',
   )
   daghi_discount = models.DecimalField(
       max_digits=12,
       decimal_places=0,
       default=0,
-      verbose_name="مبلغ کسر شده داغی",
+      verbose_name='مبلغ کسر شده داغی',
   )
   final_sale_price = models.DecimalField(
       max_digits=12,
       decimal_places=0,
       default=0,
-      verbose_name="مبلغ نهایی دریافتی",
-  )
-  discount = models.DecimalField(
-      max_digits=12,
-      decimal_places=0,
-      default=Decimal('0'),
-      verbose_name='مبلغ تخفیف (تومان)',
-      help_text='مبلغ تخفیف دستی که از فاکتور کسر می‌شود',
+      verbose_name='مبلغ نهایی دریافتی',
   )
 
   class Meta:
-    verbose_name = "فروش باتری"
-    verbose_name_plural = "فاکتورهای فروش"
+    verbose_name = 'فروش باتری'
+    verbose_name_plural = 'فاکتورهای فروش'
 
   @property
   def formatted_plate_parts(self):
-      """تجزیه پلاک ذخیره شده به ۴ بخش برای نمایش واقعی استاندارد"""
-      if not self.car_plate:
-          return None
+    if not self.car_plate:
+      return None
+    try:
+      parts = self.car_plate.split(' - ایران ')
+      main_part = parts[0].strip().split(' ')
+      iran_code = parts[1].strip() if len(parts) > 1 else ''
+      return {
+          'p1': main_part[0] if len(main_part) > 0 else '',
+          'p2': main_part[1] if len(main_part) > 1 else '',
+          'p3': main_part[2] if len(main_part) > 2 else '',
+          'iran': iran_code,
+      }
+    except Exception:
+      return None
 
-      # مثلا رشته: "12 ب 345 - ایران 68"
-      try:
-          parts = self.car_plate.split(' - ایران ')
-          main_part = parts[0].strip().split(' ')  # ['12', 'ب', '345']
-          iran_code = parts[1].strip() if len(parts) > 1 else ''
-
-          return {
-              'p1': main_part[0] if len(main_part) > 0 else '',
-              'p2': main_part[1] if len(main_part) > 1 else '',
-              'p3': main_part[2] if len(main_part) > 2 else '',
-              'iran': iran_code,
-          }
-      except Exception:
-          return None
-
-  # متد استخراج عدد از آمپر داغی
   @property
   def numeric_daghi_amperage(self):
     if self.daghi_amperage:
-      digits = "".join(filter(str.isdigit, str(self.daghi_amperage)))
+      digits = ''.join(filter(str.isdigit, str(self.daghi_amperage)))
       return int(digits) if digits else self.battery.numeric_amperage
     return self.battery.numeric_amperage
 
+  # پروپرتی حساب کردن سود (بدون ساخت فیلد اضافی در دیتابیس)
+  @property
+  def profit(self):
+    cost = (
+        Decimal(str(self.battery.purchase_price))
+        if self.battery.purchase_price
+        else Decimal('0')
+    )
+    return self.sale_price_without_daghi - cost
+
   def save(self, *args, **kwargs):
-    # ۱. خواندن تنظیمات کلی سیستم به صورت Decimal
+    # ۱. تنظیمات سیستم
     settings = SystemSetting.objects.last()
     daghi_rate = (
         Decimal(str(settings.daghi_price_per_amper))
         if settings
-        else Decimal("40000")
+        else Decimal('40000')
     )
     profit_percent = (
         Decimal(str(settings.default_profit_percent))
         if settings
-        else Decimal("20")
+        else Decimal('20')
     )
 
-    # ۲. مقادیر مربوط به باتری نو انتخاب شده
+    # ۲. قیمت پایه
     current_brand_rate = Decimal(
         str(self.battery.brand.selling_price_per_amper)
     )
     new_battery_amperage = Decimal(str(self.battery.numeric_amperage))
-
-    # ۳. قیمت پایه فروش روز (آمپر باتری نو × نرخ روز)
     base_price = new_battery_amperage * current_brand_rate
 
-    # ۴. قیمت فروش بدون داغی (با درصد سود)
-    profit_factor = Decimal("1") + (profit_percent / Decimal("100"))
+    # ۳. قیمت بدون داغی
+    profit_factor = Decimal('1') + (profit_percent / Decimal('100'))
     self.sale_price_without_daghi = base_price * profit_factor
 
-    # ۵. محاسبه کسر داغی بر اساس «آمپر داغی تحویلی»
+    # ۴. کسر داغی
     if self.has_daghi:
       actual_daghi_amper = Decimal(str(self.numeric_daghi_amperage))
       self.daghi_discount = actual_daghi_amper * daghi_rate
     else:
-      self.daghi_discount = Decimal("0")
+      self.daghi_discount = Decimal('0')
 
-    # ۶. مبلغ نهایی دریافتی از مشتری
-    self.final_sale_price = self.sale_price_without_daghi - self.daghi_discount
-
-    # ۷. سود واقعی (قیمت فروش بدون داغی منفی قیمت خرید اولیه)
-    cost = (
-        Decimal(str(self.battery.purchase_price))
-        if self.battery.purchase_price
-        else Decimal("0")
+    # ۵. کسر تخفیف دستی و محاسبه قیمت نهایی
+    manual_discount = self.discount or Decimal('0')
+    calculated_final = (
+        self.sale_price_without_daghi - self.daghi_discount - manual_discount
     )
-    self.profit = self.sale_price_without_daghi - cost
+    self.final_sale_price = max(Decimal('0'), calculated_final)
 
     is_new = self.pk is None
     super().save(*args, **kwargs)
 
     if is_new:
-      self.battery.status = "sold"
+      self.battery.status = 'sold'
       self.battery.save()

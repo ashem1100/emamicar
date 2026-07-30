@@ -107,7 +107,7 @@
                 <tbody>
                     {% for sale in sales %}
                     <tr>
-                        <td class="fw-bold">{{ sale.customer_name|default:"خریدار ناپیدا" }} <br><small class="text-secondary fw-normal">{{ sale.customer_phone }}</small></td>
+                        <td class="fw-bold">{{ sale.customer_name|default:"بدون نام" }} <br><small class="text-secondary fw-normal">{{ sale.customer_phone|default:"تلفن ثبت نشده!" }}</small></td>
                         <td>{{ sale.battery.brand.name }} - {{ sale.battery.amperage }} <br><small class="text-info">{{ sale.battery.serial_code }}</small></td>
                         <td>
                             {% if sale.car_plate %}

@@ -249,6 +249,13 @@ def sale_create_view(request):
     warranty_serial = request.POST.get('warranty_serial')
     installer_id = request.POST.get('installer')
 
+    # دریافت مبلغ تخفیف از فرم
+    discount_raw = request.POST.get('discount', '0')
+    try:
+      discount_val = int(discount_raw) if discount_raw else 0
+    except ValueError:
+      discount_val = 0
+
     # ترکیب اجزای ۴ بخشی پلاک خودرو
     p1 = request.POST.get('plate_1', '').strip()
     p2 = request.POST.get('plate_2', '').strip()
@@ -272,7 +279,7 @@ def sale_create_view(request):
             User.objects.get(id=installer_id) if installer_id else None
         )
 
-        # ساخت آبجکت (متد save مدل تمام محاسبات مالی و تغییر وضعیت باتری به sold رو خودش انجام میده)
+        # ثبت فاکتور به همراه تخفیف
         sale = Sale.objects.create(
             battery=battery,
             customer_name=customer_name,
@@ -282,6 +289,7 @@ def sale_create_view(request):
             has_daghi=has_daghi,
             daghi_amperage=daghi_amperage,
             installer=installer_user,
+            discount=discount_val,  # <--- اعمال تخفیف در اینجا
         )
 
         messages.success(request, 'فاکتور فروش با موفقیت ثبت شد.')
@@ -290,14 +298,11 @@ def sale_create_view(request):
       except Exception as e:
         messages.error(request, f'خطا در ثبت فاکتور: {e}')
 
-  # اطلاعات مورد نیاز فرم
   available_batteries = Battery.objects.filter(
       status='available'
   ).select_related('brand')
-  users = User.objects.all()  # لیست نصاب‌ها (کاربران سیستم)
-  daghi_choices = (
-      Sale.DAGHI_AMPERAGE_CHOICES
-  )  # لیست انتخاب‌های آمپر داغی دقیقاً از خود مدل
+  users = User.objects.all()
+  daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
 
   context = {
       'available_batteries': available_batteries,

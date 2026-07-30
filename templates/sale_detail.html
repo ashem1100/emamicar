@@ -103,7 +103,7 @@
             <div class="col-12 col-md-6">
                 <div class="info-box h-100">
                     <span class="text-secondary small d-block mb-1">مشخصات خریدار:</span>
-                    <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"خریدار ناپیدا" }}</h5>
+                    <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"بدون نام" }}</h5>
                     <p class="text-secondary small mb-0">
                         <i class="fa-solid fa-phone me-1 text-info"></i>
                         {{ sale.customer_phone|default:"شماره تماس ثبت نشده" }}
@@ -179,11 +179,7 @@
                     <strong class="text-white">{{ sale.battery.amperage }} آمپر</strong>
                 </div>
                 <div class="col-6 col-md-3">
-                    <span class="text-secondary small d-block mb-1">سریال اختصاصی باتری:</span>
-                    <strong class="text-info">{{ sale.battery.serial_code }}</strong>
-                </div>
-                <div class="col-6 col-md-3">
-                    <span class="text-secondary small d-block mb-1">سریال گارانتی:</span>
+                    <span class="text-secondary small d-block mb-1">سریال باتری:</span>
                     <strong class="text-warning">{{ sale.warranty_serial|default:"---" }}</strong>
                 </div>
             </div>
@@ -216,17 +212,28 @@
         </div>
 
         <!-- محاسبات مالی -->
+<!-- محاسبات مالی -->
         <div class="info-box bg-dark p-4 rounded-3 border border-secondary border-opacity-25">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary">قیمت پایه باتری (بدون کسر داغی):</span>
                 <span class="text-white fw-bold">{{ sale.sale_price_without_daghi|intcomma }} تومان</span>
             </div>
+
             {% if sale.has_daghi %}
             <div class="d-flex justify-content-between align-items-center mb-2 text-warning">
-                <span>تخفیف کسر داغی:</span>
+                <span>کاهش هزینه داغی:</span>
                 <span>- {{ sale.daghi_discount|intcomma }} تومان</span>
             </div>
             {% endif %}
+
+            <!-- ردیف جدید: نمایش تخفیف دستی (اگر وارد شده باشد) -->
+            {% if sale.discount and sale.discount > 0 %}
+            <div class="d-flex justify-content-between align-items-center mb-2 text-info">
+                <span>تخفیف اعمال شده:</span>
+                <span>- {{ sale.discount|intcomma }} تومان</span>
+            </div>
+            {% endif %}
+
             <hr class="border-secondary opacity-25 my-3">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="fw-bold mb-0 text-white">مبلغ نهایی پرداختی:</h5>
