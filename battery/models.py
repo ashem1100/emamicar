@@ -189,7 +189,17 @@ class Battery(models.Model):
         f" {self.get_status_display()}"
     )
 
+class PaymentMethod(models.Model):
+    """مدیریت روش‌های پرداخت از طریق ادمین"""
+    name = models.CharField(max_length=100, verbose_name="روش پرداخت (مثل: کارتخوان، نقدی)")
+    is_active = models.BooleanField(default=True, verbose_name="وضعیت فعال")
 
+    class Meta:
+        verbose_name = "روش پرداخت"
+        verbose_name_plural = "روش‌های پرداخت"
+
+    def __str__(self):
+        return self.name
 
 class Sale(models.Model):
   """ثبت فروش باتری"""
@@ -272,6 +282,13 @@ class Sale(models.Model):
       decimal_places=0,
       default=0,
       verbose_name='مبلغ نهایی دریافتی',
+  )
+  payment_method = models.ForeignKey(
+      PaymentMethod,
+      on_delete=models.SET_NULL,
+      null=True,
+      blank=True,
+      verbose_name='روش پرداخت'
   )
 
   class Meta:

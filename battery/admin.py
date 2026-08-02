@@ -132,3 +132,8 @@ class InstallerTransactionAdmin(admin.ModelAdmin):
     return f'{obj.amount:,} تومان'
 
   formatted_amount.short_description = 'مبلغ'
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active')
+    list_editable = ('is_active',)

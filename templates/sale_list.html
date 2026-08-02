@@ -4,7 +4,7 @@
 {% load jalali_tags %} <!-- اضافه شدن تگ‌های تاریخ شمسی -->
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://unpkg.com/jalalidatepicker/dist/jalalidatepicker.min.css">
+<link rel="stylesheet" href="{% static 'css/jalalidatepicker.min.css' %}">
 <style>
     .filter-card, .table-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
     .form-dark { background-color: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; border-radius: 8px; }
@@ -158,6 +158,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+<script src="{% static 'js/jalalidatepicker.min.js' %}"></script>
 <script>jalaliDatepicker.startWatch({ separatorChar: "/" });</script>
 {% endblock %}

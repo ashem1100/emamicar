@@ -244,75 +244,78 @@ def sale_detail_view(request, pk):
 
 @staff_member_required
 def sale_create_view(request):
-  if request.method == 'POST':
-    battery_id = request.POST.get('battery')
-    customer_name = request.POST.get('customer_name')
-    customer_phone = request.POST.get('customer_phone')
-    warranty_serial = request.POST.get('warranty_serial')
-    installer_id = request.POST.get('installer')
+    if request.method == 'POST':
+        battery_id = request.POST.get('battery')
+        customer_name = request.POST.get('customer_name')
+        customer_phone = request.POST.get('customer_phone')
+        warranty_serial = request.POST.get('warranty_serial')
+        installer_id = request.POST.get('installer')
 
-    # دریافت مبلغ تخفیف از فرم
-    discount_raw = request.POST.get('discount', '0')
-    try:
-      discount_val = int(discount_raw) if discount_raw else 0
-    except ValueError:
-      discount_val = 0
+        # دریافت روش پرداخت
+        payment_method_id = request.POST.get('payment_method')
 
-    # ترکیب اجزای ۴ بخشی پلاک خودرو
-    p1 = request.POST.get('plate_1', '').strip()
-    p2 = request.POST.get('plate_2', '').strip()
-    p3 = request.POST.get('plate_3', '').strip()
-    p4 = request.POST.get('plate_4', '').strip()
-    car_plate = f'{p1} {p2} {p3} - ایران {p4}' if (p1 and p3) else ''
+        discount_raw = request.POST.get('discount', '0')
+        try:
+            discount_val = int(discount_raw) if discount_raw else 0
+        except ValueError:
+            discount_val = 0
 
-    has_daghi = request.POST.get('has_daghi') == 'on'
-    daghi_amperage = (
-        request.POST.get('daghi_amperage', '') if has_daghi else None
-    )
+        p1 = request.POST.get('plate_1', '').strip()
+        p2 = request.POST.get('plate_2', '').strip()
+        p3 = request.POST.get('plate_3', '').strip()
+        p4 = request.POST.get('plate_4', '').strip()
+        car_plate = f'{p1} {p2} {p3} - ایران {p4}' if (p1 and p3) else ''
 
-    if not battery_id or not warranty_serial:
-      messages.error(
-          request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.'
-      )
-    else:
-      try:
-        battery = Battery.objects.get(id=battery_id, status='available')
-        installer_user = (
-            User.objects.get(id=installer_id) if installer_id else None
+        has_daghi = request.POST.get('has_daghi') == 'on'
+        daghi_amperage = (
+            request.POST.get('daghi_amperage', '') if has_daghi else None
         )
 
-        # ثبت فاکتور به همراه تخفیف
-        sale = Sale.objects.create(
-            battery=battery,
-            customer_name=customer_name,
-            customer_phone=customer_phone,
-            car_plate=car_plate,
-            warranty_serial=warranty_serial,
-            has_daghi=has_daghi,
-            daghi_amperage=daghi_amperage,
-            installer=installer_user,
-            discount=discount_val,  # <--- اعمال تخفیف در اینجا
-        )
+        if not battery_id or not warranty_serial:
+            messages.error(
+                request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.'
+            )
+        else:
+            try:
+                battery = Battery.objects.get(id=battery_id, status='available')
+                installer_user = User.objects.get(id=installer_id) if installer_id else None
+                payment_method_obj = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
 
-        messages.success(request, 'فاکتور فروش با موفقیت ثبت شد.')
-        return redirect('sale_list')
+                sale = Sale.objects.create(
+                    battery=battery,
+                    customer_name=customer_name,
+                    customer_phone=customer_phone,
+                    car_plate=car_plate,
+                    warranty_serial=warranty_serial,
+                    has_daghi=has_daghi,
+                    daghi_amperage=daghi_amperage,
+                    installer=installer_user,
+                    discount=discount_val,
+                    payment_method=payment_method_obj,  # <--- ذخیره روش پرداخت
+                )
 
-      except Exception as e:
-        messages.error(request, f'خطا در ثبت فاکتور: {e}')
+                messages.success(request, 'فاکتور فروش با موفقیت ثبت شد.')
+                return redirect('sale_list')
 
-  available_batteries = Battery.objects.filter(
-      status='available'
-  ).select_related('brand')
-  users = User.objects.all()
-  daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
+            except Exception as e:
+                messages.error(request, f'خطا در ثبت فاکتور: {e}')
 
-  context = {
-      'available_batteries': available_batteries,
-      'users': users,
-      'daghi_choices': daghi_choices,
-  }
-  return render(request, 'sale_form.html', context)
+    available_batteries = Battery.objects.filter(status='available').select_related('brand')
+    users = User.objects.all()
+    daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
+    payment_methods = PaymentMethod.objects.filter(is_active=True)
 
+    # گرفتن تنظیمات برای محاسبه زنده
+    settings = SystemSetting.objects.last()
+
+    context = {
+        'available_batteries': available_batteries,
+        'users': users,
+        'daghi_choices': daghi_choices,
+        'payment_methods': payment_methods,
+        'settings': settings,  # <--- این خط اضافه شد
+    }
+    return render(request, 'sale_form.html', context)
 
 @login_required
 def installer_dashboard_view(request):
@@ -328,14 +331,16 @@ def installer_dashboard_view(request):
 
 @login_required
 def installer_sale_create_view(request):
-    """ثبت فاکتور اختصاصی نصاب (بدون قابلیت تغییر نصاب)"""
+    """ثبت فاکتور اختصاصی نصاب"""
     if request.method == 'POST':
         battery_id = request.POST.get('battery')
         customer_name = request.POST.get('customer_name')
         customer_phone = request.POST.get('customer_phone')
         warranty_serial = request.POST.get('warranty_serial')
 
-        # دریافت مبلغ تخفیف
+        # دریافت روش پرداخت
+        payment_method_id = request.POST.get('payment_method')
+
         discount_raw = request.POST.get('discount', '0')
         try:
             discount_val = int(discount_raw) if discount_raw else 0
@@ -356,9 +361,8 @@ def installer_sale_create_view(request):
         else:
             try:
                 battery = Battery.objects.get(id=battery_id, status='available')
-
-                # نکته امنیتی مهم: نصاب مستقیماً کاربری است که لاگین کرده است
                 installer_user = request.user
+                payment_method_obj = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
 
                 Sale.objects.create(
                     battery=battery,
@@ -368,8 +372,9 @@ def installer_sale_create_view(request):
                     warranty_serial=warranty_serial,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
-                    installer=installer_user,  # <--- تخصیص اجباری و خودکار
+                    installer=installer_user,
                     discount=discount_val,
+                    payment_method=payment_method_obj,  # <--- ذخیره روش پرداخت
                 )
 
                 messages.success(request, 'فاکتور فروش با موفقیت در پنل شما ثبت شد.')
@@ -380,13 +385,18 @@ def installer_sale_create_view(request):
 
     available_batteries = Battery.objects.filter(status='available').select_related('brand')
     daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
+    payment_methods = PaymentMethod.objects.filter(is_active=True)
+
+    # گرفتن تنظیمات برای محاسبه زنده
+    settings = SystemSetting.objects.last()
 
     context = {
         'available_batteries': available_batteries,
         'daghi_choices': daghi_choices,
+        'payment_methods': payment_methods,
+        'settings': settings,  # <--- این خط اضافه شد
     }
     return render(request, 'installer_sale_form.html', context)
-
 
 @login_required
 def installer_dashboard_view(request):

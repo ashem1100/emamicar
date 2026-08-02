@@ -10,9 +10,10 @@
     <link rel="stylesheet" href="{% static 'css/bootstrap.rtl.css' %}">
 
     <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}">
     <!-- Vazirmatn Persian Font -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <link href="{% static 'css/font.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/jalalidatepicker.min.css' %}">
 
     <style>
         body {
@@ -167,6 +168,7 @@
 
     <!-- Bootstrap Local JS -->
     <script src="{% static 'js/bootstrap.bundle.js' %}"></script>
+    <script src="{% static 'js/jalalidatepicker.min.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
