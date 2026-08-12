@@ -78,7 +78,8 @@ class PurchaseItem(models.Model):
       ("55", "55"),
       ("60", "60"),
       ("66", "66"),
-      ("70", "70"),
+      ("70L", "70L"),  # <--- جدید
+      ("70R", "70R"),  # <--- جدید
       ("74", "74"),
   )
 
@@ -110,7 +111,7 @@ class PurchaseItem(models.Model):
   @property
   def numeric_amperage(self):
       # رشته را تا قبل از حرف L برمی‌دارد (مثلا از 50L1 فقط 50 را جدا می‌کند)
-      raw_amper = str(self.amperage).split('L')[0]
+      raw_amper = str(self.amperage).split('L')[0].split('R')[0]
       digits = "".join(filter(str.isdigit, raw_amper))
       return int(digits) if digits else 0
   def save(self, *args, **kwargs):
@@ -178,8 +179,8 @@ class Battery(models.Model):
   # متد کمکی برای استخراج مقدار عددی آمپر
   @property
   def numeric_amperage(self):
-      # رشته را تا قبل از حرف L برمی‌دارد (مثلا از 50L1 فقط 50 را جدا می‌کند)
-      raw_amper = str(self.amperage).split('L')[0]
+      # رشته را تا قبل از حرف L یا R برمی‌دارد تا عدد خالص به دست آید
+      raw_amper = str(self.amperage).split('L')[0].split('R')[0]
       digits = "".join(filter(str.isdigit, raw_amper))
       return int(digits) if digits else 0
 
