@@ -50,7 +50,6 @@
             <!-- انتخاب باتری از انبار -->
             <div class="mb-3">
                 <label class="form-label text-secondary small">انتخاب باتری از انبار (*):</label>
-                <!-- اضافه شدن onchange و دیتا اتریبیوت‌ها -->
                 <select name="battery" id="batterySelect" class="form-select form-dark" required onchange="calculateLivePrice()">
                     <option value="">-- انتخاب باتری --</option>
                     {% for b in available_batteries %}
@@ -63,15 +62,24 @@
                 </select>
             </div>
 
-            <!-- مشخصات خریدار -->
+            <!-- مشخصات خریدار، خودرو و تاریخ (۴ ستونه) -->
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
+                <div class="col-md-6 col-lg-3">
                     <label class="form-label text-secondary small">نام خریدار:</label>
                     <input type="text" name="customer_name" class="form-control form-dark">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 col-lg-3">
                     <label class="form-label text-secondary small">تلفن مشتری:</label>
                     <input type="text" name="customer_phone" class="form-control form-dark" placeholder="09123456789">
+                </div>
+                <!-- فیلد جدید: مدل ماشین -->
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label text-secondary small">مدل ماشین (اختیاری):</label>
+                    <input type="text" name="car_model" class="form-control form-dark" placeholder="مثلا: پژو 206">
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label text-secondary small">تاریخ فروش (*):</label>
+                    <input type="text" name="sale_date" data-jdp value="{{ today_jalali }}" class="form-control form-dark text-center fw-bold" style="letter-spacing: 2px;" required readonly>
                 </div>
             </div>
 
@@ -120,7 +128,6 @@
                 </div>
                 <div class="col-md-6 col-lg-3">
                     <label class="form-label text-warning small fw-bold">تخفیف دستی (تومان):</label>
-                    <!-- اضافه شدن oninput -->
                     <input type="number" name="discount" id="discountInput" class="form-control form-dark" placeholder="مثلاً: 50000" min="0" step="1000" oninput="calculateLivePrice()">
                 </div>
             </div>
@@ -128,7 +135,6 @@
             <!-- وضعیت داغی -->
             <div class="daghi-container mb-4">
                 <div class="form-check form-switch mb-2">
-                    <!-- اضافه شدن onchange به سوئیچ -->
                     <input class="form-check-input" type="checkbox" name="has_daghi" id="daghiCheck" checked onchange="toggleDaghiFields(this.checked); calculateLivePrice();">
                     <label class="form-check-label text-warning fw-bold" for="daghiCheck">
                         ⚡ تحویل داغی دارد؟
@@ -137,7 +143,6 @@
 
                 <div id="daghiFields" class="mt-3">
                     <label class="form-label text-secondary small">آمپر داغی تحویلی (اگر متفاوت با باتری نو است):</label>
-                    <!-- اضافه شدن onchange به داغی -->
                     <select name="daghi_amperage" id="daghiAmperageSelect" class="form-select form-dark" onchange="calculateLivePrice()">
                         <option value="">هم‌ آمپر با باتری نو (پیش‌فرض)</option>
                         {% for val, label in daghi_choices %}
@@ -163,21 +168,17 @@
 
 {% block extra_js %}
 <script>
-    // گرفتن متغیرهای پایه از سرور (جنگو) برای محاسبات
     const daghiRate = parseInt("{{ settings.daghi_price_per_amper|default:'40000' }}");
     const profitPercent = parseInt("{{ settings.default_profit_percent|default:'20' }}");
 
-    // مدیریت نمایش/مخفی کردن فیلد داغی
     function toggleDaghiFields(checked) {
         document.getElementById('daghiFields').style.display = checked ? 'block' : 'none';
     }
 
-    // فرمولاتور اعداد (برای قرار دادن ویرگول)
     function formatCurrency(number) {
         return new Intl.NumberFormat('fa-IR').format(number);
     }
 
-    // ماشین‌حساب زنده
     function calculateLivePrice() {
         const batterySelect = document.getElementById('batterySelect');
         const selectedOption = batterySelect.options[batterySelect.selectedIndex];
@@ -185,44 +186,32 @@
         let finalPrice = 0;
 
         if (selectedOption && selectedOption.value) {
-            // خواندن دیتاهای مخفی شده در option باتری انتخاب شده
             const batteryAmperage = parseInt(selectedOption.getAttribute('data-amperage'));
             const brandRate = parseInt(selectedOption.getAttribute('data-brand-rate'));
 
-            // ۱. قیمت پایه
             const basePrice = batteryAmperage * brandRate;
-
-            // ۲. قیمت بدون داغی (اعمال درصد سود)
             const profitFactor = 1 + (profitPercent / 100);
             const priceWithoutDaghi = basePrice * profitFactor;
 
-            // ۳. محاسبه تخفیف داغی
             let daghiDiscount = 0;
             const hasDaghi = document.getElementById('daghiCheck').checked;
 
             if (hasDaghi) {
                 const daghiAmperageSelect = document.getElementById('daghiAmperageSelect').value;
-                // اگر آمپر داغی دستی انتخاب نشده بود، آمپر باتری نو را در نظر بگیر
                 const actualDaghiAmper = daghiAmperageSelect ? parseInt(daghiAmperageSelect) : batteryAmperage;
                 daghiDiscount = actualDaghiAmper * daghiRate;
             }
 
-            // ۴. کسر تخفیف دستی
             const discountInput = document.getElementById('discountInput').value;
             const manualDiscount = discountInput ? parseInt(discountInput) : 0;
 
-            // ۵. محاسبه قیمت نهایی
             finalPrice = priceWithoutDaghi - daghiDiscount - manualDiscount;
-
-            // جلوگیری از قیمت منفی
             if (finalPrice < 0) finalPrice = 0;
         }
 
-        // نمایش قیمت در باکس
         document.getElementById('livePriceDisplay').innerHTML = `${formatCurrency(finalPrice)} <small class="fs-6 text-secondary">تومان</small>`;
     }
 
-    // فراخوانی در زمان لود صفحه (برای حالتی که صفحه رفرش می‌شود)
     document.addEventListener("DOMContentLoaded", function() {
         calculateLivePrice();
     });

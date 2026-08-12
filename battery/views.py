@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
@@ -19,183 +18,157 @@ from decimal import Decimal
 
 @staff_member_required
 def dashboard_view(request):
-  # ۱. گرفتن فیلتر زمانی از آدرس (پیش‌فرض: all = کل دوره)
-  period = request.GET.get('period', 'all')
-  now = timezone.now().date()
+    period = request.GET.get('period', 'all')
+    now = timezone.now().date()
 
-  # ساخت کوئری پایه برای فروش‌ها
-  sales_queryset = Sale.objects.all()
+    sales_queryset = Sale.objects.all()
 
-  # ۲. اعمال فیلتر زمانی روی فروش‌ها
-  if period == 'today':
-    sales_queryset = sales_queryset.filter(sale_date=now)
-  elif period == 'week':
-    start_date = now - timedelta(days=7)
-    sales_queryset = sales_queryset.filter(
-        sale_date__gte=start_date, sale_date__lte=now
-    )
-  elif period == 'month':
-    start_date = now - timedelta(days=30)
-    sales_queryset = sales_queryset.filter(
-        sale_date__gte=start_date, sale_date__lte=now
-    )
-  elif period == 'year':
-    sales_queryset = sales_queryset.filter(sale_date__year=now.year)
+    if period == 'today':
+        sales_queryset = sales_queryset.filter(sale_date=now)
+    elif period == 'week':
+        start_date = now - timedelta(days=7)
+        sales_queryset = sales_queryset.filter(
+            sale_date__gte=start_date, sale_date__lte=now
+        )
+    elif period == 'month':
+        start_date = now - timedelta(days=30)
+        sales_queryset = sales_queryset.filter(
+            sale_date__gte=start_date, sale_date__lte=now
+        )
+    elif period == 'year':
+        sales_queryset = sales_queryset.filter(sale_date__year=now.year)
 
-  # ۳. آمار موجودی انبار (موجودی فعلی به بازه زمانی ربطی ندارد و همواره لحظه‌ای است)
-  available_batteries = Battery.objects.filter(status='available')
-  total_available_count = available_batteries.count()
+    available_batteries = Battery.objects.filter(status='available')
+    total_available_count = available_batteries.count()
 
-  inventory_summary = (
-      available_batteries.values('brand__name', 'amperage')
-      .annotate(count=Count('id'))
-      .order_by('brand__name', 'amperage')
-  )
-
-  # ۴. محاسبه آمار داغی‌ها بر اساس فیلتر زمانی انتخاب شده
-  sales_with_daghi = sales_queryset.filter(has_daghi=True)
-  total_daghi_count = sales_with_daghi.count()
-
-  total_daghi_amperage = sum(
-      sale.numeric_daghi_amperage for sale in sales_with_daghi
-  )
-
-  # ۵. محاسبه مالی فروش بر اساس فیلتر زمانی
-  total_sales_count = sales_queryset.count()
-  total_sales_amount = (
-      sales_queryset.aggregate(Sum('final_sale_price'))[
-          'final_sale_price__sum'
-      ]
-      or 0
-  )
-
-  # ۶. مجموع کل فاکتورهای خرید (برای کل دوره)
-  total_purchase_amount = 0
-  for item in PurchaseItem.objects.all():
-    total_purchase_amount += (
-        item.numeric_amperage * item.purchase_price_per_amper * item.quantity
+    inventory_summary = (
+        available_batteries.values('brand__name', 'amperage')
+        .annotate(count=Count('id'))
+        .order_by('brand__name', 'amperage')
     )
 
-  context = {
-      'period': period,
-      'total_available_count': total_available_count,
-      'inventory_summary': inventory_summary,
-      'total_daghi_count': total_daghi_count,
-      'total_daghi_amperage': total_daghi_amperage,
-      'total_sales_count': total_sales_count,
-      'total_sales_amount': total_sales_amount,
-      'total_purchase_amount': total_purchase_amount,
-  }
+    sales_with_daghi = sales_queryset.filter(has_daghi=True)
+    total_daghi_count = sales_with_daghi.count()
 
-  return render(request, 'dashboard.html', context)
+    total_daghi_amperage = sum(
+        sale.numeric_daghi_amperage for sale in sales_with_daghi
+    )
+
+    total_sales_count = sales_queryset.count()
+    total_sales_amount = (
+            sales_queryset.aggregate(Sum('final_sale_price'))[
+                'final_sale_price__sum'
+            ]
+            or 0
+    )
+
+    total_purchase_amount = 0
+    for item in PurchaseItem.objects.all():
+        total_purchase_amount += (
+                item.numeric_amperage * item.purchase_price_per_amper * item.quantity
+        )
+
+    context = {
+        'period': period,
+        'total_available_count': total_available_count,
+        'inventory_summary': inventory_summary,
+        'total_daghi_count': total_daghi_count,
+        'total_daghi_amperage': total_daghi_amperage,
+        'total_sales_count': total_sales_count,
+        'total_sales_amount': total_sales_amount,
+        'total_purchase_amount': total_purchase_amount,
+    }
+
+    return render(request, 'dashboard.html', context)
 
 
 @staff_member_required
 def analytics_view(request):
-  start_date_shamsi = request.GET.get('start_date', '')
-  end_date_shamsi = request.GET.get('end_date', '')
+    start_date_shamsi = request.GET.get('start_date', '')
+    end_date_shamsi = request.GET.get('end_date', '')
 
-  sales_queryset = Sale.objects.all()
+    sales_queryset = Sale.objects.all()
 
-  # فیلتر تاریخ شمسی
-  if start_date_shamsi:
-    try:
-      parts = [int(x) for x in start_date_shamsi.split('/')]
-      start_gregorian = jdatetime.date(
-          parts[0], parts[1], parts[2]
-      ).togregorian()
-      sales_queryset = sales_queryset.filter(sale_date__gte=start_gregorian)
-    except ValueError:
-      pass
+    if start_date_shamsi:
+        try:
+            parts = [int(x) for x in start_date_shamsi.split('/')]
+            start_gregorian = jdatetime.date(
+                parts[0], parts[1], parts[2]
+            ).togregorian()
+            sales_queryset = sales_queryset.filter(sale_date__gte=start_gregorian)
+        except ValueError:
+            pass
 
-  if end_date_shamsi:
-    try:
-      parts = [int(x) for x in end_date_shamsi.split('/')]
-      end_gregorian = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
-      sales_queryset = sales_queryset.filter(sale_date__lte=end_gregorian)
-    except ValueError:
-      pass
+    if end_date_shamsi:
+        try:
+            parts = [int(x) for x in end_date_shamsi.split('/')]
+            end_gregorian = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+            sales_queryset = sales_queryset.filter(sale_date__lte=end_gregorian)
+        except ValueError:
+            pass
 
-  # ۱. آمار برندها
-  brand_sales = (
-      sales_queryset.values('battery__brand__name')
-      .annotate(total_count=Count('id'))
-      .order_by('-total_count')
-  )
-  brand_labels = [item['battery__brand__name'] for item in brand_sales]
-  brand_counts = [item['total_count'] for item in brand_sales]
+    brand_sales = (
+        sales_queryset.values('battery__brand__name')
+        .annotate(total_count=Count('id'))
+        .order_by('-total_count')
+    )
+    brand_labels = [item['battery__brand__name'] for item in brand_sales]
+    brand_counts = [item['total_count'] for item in brand_sales]
 
-  # ۲. آمار آمپرها
-  amper_sales = (
-      sales_queryset.values('battery__amperage')
-      .annotate(total_count=Count('id'))
-      .order_by('-total_count')
-  )
-  amper_labels = [f"{item['battery__amperage']} آمپر" for item in amper_sales]
-  amper_counts = [item['total_count'] for item in amper_sales]
+    amper_sales = (
+        sales_queryset.values('battery__amperage')
+        .annotate(total_count=Count('id'))
+        .order_by('-total_count')
+    )
+    amper_labels = [f"{item['battery__amperage']} آمپر" for item in amper_sales]
+    amper_counts = [item['total_count'] for item in amper_sales]
 
-  # ۳. آمار روند فروش بر اساس ماه شمسی واقعی
-  shamsi_months = [
-      'فروردین',
-      'اردیبهشت',
-      'خرداد',
-      'تیر',
-      'مرداد',
-      'شهریور',
-      'مهر',
-      'آبان',
-      'آذر',
-      'دی',
-      'بهمن',
-      'اسفند',
-  ]
+    shamsi_months = [
+        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+    ]
 
-  # دیکشنری برای جمع زدن فروش‌های هر ماه شمسی
-  monthly_data = defaultdict(float)
+    monthly_data = defaultdict(float)
 
-  # پیمایش تمام فروش‌ها و تبدیل تک‌تک تاریخ‌ها به ماه شمسی دقیق
-  for sale in sales_queryset:
-    if sale.sale_date:
-      j_date = jdatetime.date.fromgregorian(date=sale.sale_date)
-      # کلید به صورت (کد_ماه, نام_ماه) برای مرتب‌سازی درست
-      month_key = (j_date.month, shamsi_months[j_date.month - 1])
-      monthly_data[month_key] += float(sale.final_sale_price or 0)
+    for sale in sales_queryset:
+        if sale.sale_date:
+            j_date = jdatetime.date.fromgregorian(date=sale.sale_date)
+            month_key = (j_date.month, shamsi_months[j_date.month - 1])
+            monthly_data[month_key] += float(sale.final_sale_price or 0)
 
-  # مرتب‌سازی بر اساس شماره ماه شمسی (از فروردین تا اسفند)
-  sorted_months = sorted(monthly_data.items(), key=lambda x: x[0][0])
+    sorted_months = sorted(monthly_data.items(), key=lambda x: x[0][0])
 
-  monthly_labels = [item[0][1] for item in sorted_months]
-  monthly_amounts = [item[1] for item in sorted_months]
+    monthly_labels = [item[0][1] for item in sorted_months]
+    monthly_amounts = [item[1] for item in sorted_months]
 
-  context = {
-      'brand_labels': json.dumps(brand_labels),
-      'brand_counts': json.dumps(brand_counts),
-      'amper_labels': json.dumps(amper_labels),
-      'amper_counts': json.dumps(amper_counts),
-      'monthly_labels': json.dumps(monthly_labels),
-      'monthly_amounts': json.dumps(monthly_amounts),
-      'start_date': start_date_shamsi,
-      'end_date': end_date_shamsi,
-  }
+    context = {
+        'brand_labels': json.dumps(brand_labels),
+        'brand_counts': json.dumps(brand_counts),
+        'amper_labels': json.dumps(amper_labels),
+        'amper_counts': json.dumps(amper_counts),
+        'monthly_labels': json.dumps(monthly_labels),
+        'monthly_amounts': json.dumps(monthly_amounts),
+        'start_date': start_date_shamsi,
+        'end_date': end_date_shamsi,
+    }
 
-  return render(request, 'analytics.html', context)
+    return render(request, 'analytics.html', context)
 
 
 @staff_member_required
 def sale_list_view(request):
     sales = Sale.objects.select_related('battery', 'battery__brand').all().order_by('-sale_date')
 
-    # ۱. جستجو (نام، پلاک، تلفن، سریال باتری)
     search_query = request.GET.get('search', '')
     if search_query:
         sales = sales.filter(
             Q(customer_name__icontains=search_query) |
             Q(customer_phone__icontains=search_query) |
             Q(car_plate__icontains=search_query) |
+            Q(car_model__icontains=search_query) |  # اضافه شدن امکان جستجو با مدل ماشین
             Q(battery__serial_code__icontains=search_query)
         )
 
-    # ۲. فیلتر برند و آمپر
     brand_id = request.GET.get('brand', '')
     amperage = request.GET.get('amperage', '')
     if brand_id:
@@ -203,7 +176,6 @@ def sale_list_view(request):
     if amperage:
         sales = sales.filter(battery__amperage=amperage)
 
-    # ۳. فیلتر تاریخ شمسی
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
     if start_date:
@@ -220,7 +192,6 @@ def sale_list_view(request):
             pass
 
     brands = Brand.objects.all()
-    # استخراج آمپرهای یکتا برای Dropdown فیلتر
     amperages = Battery.objects.values_list('amperage', flat=True).distinct()
 
     context = {
@@ -250,9 +221,11 @@ def sale_create_view(request):
         customer_phone = request.POST.get('customer_phone')
         warranty_serial = request.POST.get('warranty_serial')
         installer_id = request.POST.get('installer')
-
-        # دریافت روش پرداخت
         payment_method_id = request.POST.get('payment_method')
+        date_str = request.POST.get('sale_date')
+
+        # دریافت مدل ماشین
+        car_model = request.POST.get('car_model')
 
         discount_raw = request.POST.get('discount', '0')
         try:
@@ -277,6 +250,15 @@ def sale_create_view(request):
             )
         else:
             try:
+                if date_str:
+                    try:
+                        parts = [int(x) for x in date_str.split('/')]
+                        sale_date = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+                    except Exception:
+                        sale_date = timezone.now().date()
+                else:
+                    sale_date = timezone.now().date()
+
                 battery = Battery.objects.get(id=battery_id, status='available')
                 installer_user = User.objects.get(id=installer_id) if installer_id else None
                 payment_method_obj = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
@@ -286,12 +268,14 @@ def sale_create_view(request):
                     customer_name=customer_name,
                     customer_phone=customer_phone,
                     car_plate=car_plate,
+                    car_model=car_model,  # <--- ذخیره مدل ماشین
                     warranty_serial=warranty_serial,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
                     discount=discount_val,
-                    payment_method=payment_method_obj,  # <--- ذخیره روش پرداخت
+                    payment_method=payment_method_obj,
+                    sale_date=sale_date,
                 )
 
                 messages.success(request, 'فاکتور فروش با موفقیت ثبت شد.')
@@ -304,25 +288,24 @@ def sale_create_view(request):
     users = User.objects.all()
     daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
     payment_methods = PaymentMethod.objects.filter(is_active=True)
-
-    # گرفتن تنظیمات برای محاسبه زنده
     settings = SystemSetting.objects.last()
+
+    today_jalali = jdatetime.date.today().strftime('%Y/%m/%d')
 
     context = {
         'available_batteries': available_batteries,
         'users': users,
         'daghi_choices': daghi_choices,
         'payment_methods': payment_methods,
-        'settings': settings,  # <--- این خط اضافه شد
+        'settings': settings,
+        'today_jalali': today_jalali,
     }
     return render(request, 'sale_form.html', context)
 
+
 @login_required
 def installer_dashboard_view(request):
-    """داشبورد اختصاصی نصاب برای مشاهده فاکتورهای خودش"""
-    # فقط فاکتورهایی که این کاربر (نصاب) ثبت کرده را فیلتر می‌کنیم
     my_sales = Sale.objects.filter(installer=request.user).order_by('-sale_date')
-
     context = {
         'my_sales': my_sales,
     }
@@ -331,15 +314,15 @@ def installer_dashboard_view(request):
 
 @login_required
 def installer_sale_create_view(request):
-    """ثبت فاکتور اختصاصی نصاب"""
     if request.method == 'POST':
         battery_id = request.POST.get('battery')
         customer_name = request.POST.get('customer_name')
         customer_phone = request.POST.get('customer_phone')
         warranty_serial = request.POST.get('warranty_serial')
-
-        # دریافت روش پرداخت
         payment_method_id = request.POST.get('payment_method')
+
+        # دریافت مدل ماشین
+        car_model = request.POST.get('car_model')
 
         discount_raw = request.POST.get('discount', '0')
         try:
@@ -369,12 +352,13 @@ def installer_sale_create_view(request):
                     customer_name=customer_name,
                     customer_phone=customer_phone,
                     car_plate=car_plate,
+                    car_model=car_model,  # <--- ذخیره مدل ماشین
                     warranty_serial=warranty_serial,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
                     discount=discount_val,
-                    payment_method=payment_method_obj,  # <--- ذخیره روش پرداخت
+                    payment_method=payment_method_obj,
                 )
 
                 messages.success(request, 'فاکتور فروش با موفقیت در پنل شما ثبت شد.')
@@ -386,17 +370,16 @@ def installer_sale_create_view(request):
     available_batteries = Battery.objects.filter(status='available').select_related('brand')
     daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
     payment_methods = PaymentMethod.objects.filter(is_active=True)
-
-    # گرفتن تنظیمات برای محاسبه زنده
     settings = SystemSetting.objects.last()
 
     context = {
         'available_batteries': available_batteries,
         'daghi_choices': daghi_choices,
         'payment_methods': payment_methods,
-        'settings': settings,  # <--- این خط اضافه شد
+        'settings': settings,
     }
     return render(request, 'installer_sale_form.html', context)
+
 
 @login_required
 def installer_dashboard_view(request):
@@ -406,133 +389,122 @@ def installer_dashboard_view(request):
 
 @login_required
 def installer_sale_list_view(request):
-  """لیست فاکتورهای فروش ثبت شده توسط همین نصاب با قابلیت فیلتر کامل"""
-
-  # ۱. فقط فاکتورهای همین نصاب
-  my_sales = (
-      Sale.objects.filter(installer=request.user)
-      .select_related('battery', 'battery__brand')
-      .order_by('-sale_date')
-  )
-
-  # ۲. جستجوی متنی (نام، تلفن، پلاک، سریال باتری)
-  search_query = request.GET.get('search', '').strip()
-  if search_query:
-    my_sales = my_sales.filter(
-        Q(customer_name__icontains=search_query)
-        | Q(customer_phone__icontains=search_query)
-        | Q(car_plate__icontains=search_query)
-        | Q(battery__serial_code__icontains=search_query)
+    my_sales = (
+        Sale.objects.filter(installer=request.user)
+        .select_related('battery', 'battery__brand')
+        .order_by('-sale_date')
     )
 
-  # ۳. فیلتر برند و آمپر
-  brand_id = request.GET.get('brand', '')
-  amperage = request.GET.get('amperage', '')
-  if brand_id:
-    my_sales = my_sales.filter(battery__brand_id=brand_id)
-  if amperage:
-    my_sales = my_sales.filter(battery__amperage=amperage)
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        my_sales = my_sales.filter(
+            Q(customer_name__icontains=search_query)
+            | Q(customer_phone__icontains=search_query)
+            | Q(car_plate__icontains=search_query)
+            | Q(car_model__icontains=search_query)  # اضافه شدن امکان جستجو با مدل ماشین
+            | Q(battery__serial_code__icontains=search_query)
+        )
 
-  # ۴. فیلتر بازه تاریخ شمسی
-  start_date = request.GET.get('start_date', '').strip()
-  end_date = request.GET.get('end_date', '').strip()
+    brand_id = request.GET.get('brand', '')
+    amperage = request.GET.get('amperage', '')
+    if brand_id:
+        my_sales = my_sales.filter(battery__brand_id=brand_id)
+    if amperage:
+        my_sales = my_sales.filter(battery__amperage=amperage)
 
-  if start_date:
-    try:
-      p = [int(x) for x in start_date.split('/')]
-      my_sales = my_sales.filter(
-          sale_date__gte=jdatetime.date(p[0], p[1], p[2]).togregorian()
-      )
-    except (ValueError, IndexError):
-      pass
+    start_date = request.GET.get('start_date', '').strip()
+    end_date = request.GET.get('end_date', '').strip()
 
-  if end_date:
-    try:
-      p = [int(x) for x in end_date.split('/')]
-      my_sales = my_sales.filter(
-          sale_date__lte=jdatetime.date(p[0], p[1], p[2]).togregorian()
-      )
-    except (ValueError, IndexError):
-      pass
+    if start_date:
+        try:
+            p = [int(x) for x in start_date.split('/')]
+            my_sales = my_sales.filter(
+                sale_date__gte=jdatetime.date(p[0], p[1], p[2]).togregorian()
+            )
+        except (ValueError, IndexError):
+            pass
 
-  # ۵. داده‌های مورد نیاز برای drop-downها
-  brands = Brand.objects.all()
-  amperages = Battery.objects.values_list('amperage', flat=True).distinct()
+    if end_date:
+        try:
+            p = [int(x) for x in end_date.split('/')]
+            my_sales = my_sales.filter(
+                sale_date__lte=jdatetime.date(p[0], p[1], p[2]).togregorian()
+            )
+        except (ValueError, IndexError):
+            pass
 
-  context = {
-      'my_sales': my_sales,
-      'brands': brands,
-      'amperages': amperages,
-      'search_query': search_query,
-      'selected_brand': int(brand_id) if brand_id.isdigit() else '',
-      'selected_amperage': amperage,
-      'start_date': start_date,
-      'end_date': end_date,
-  }
-  return render(request, 'installer_sale_list.html', context)
+    brands = Brand.objects.all()
+    amperages = Battery.objects.values_list('amperage', flat=True).distinct()
+
+    context = {
+        'my_sales': my_sales,
+        'brands': brands,
+        'amperages': amperages,
+        'search_query': search_query,
+        'selected_brand': int(brand_id) if brand_id.isdigit() else '',
+        'selected_amperage': amperage,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    return render(request, 'installer_sale_list.html', context)
 
 
 @staff_member_required
 def installer_management_view(request):
-  """مدیریت کیف پول تمامی کاربران و نصاب‌ها توسط ادمین"""
+    users = User.objects.annotate(
+        total_earned=Coalesce(
+            Sum(
+                'transactions__amount',
+                filter=Q(transactions__transaction_type='earn'),
+            ),
+            Decimal('0'),
+            output_field=DecimalField(),
+        ),
+        total_payout=Coalesce(
+            Sum(
+                'transactions__amount',
+                filter=Q(transactions__transaction_type='payout'),
+            ),
+            Decimal('0'),
+            output_field=DecimalField(),
+        ),
+    ).order_by('username')
 
-  # حذف exclude برای نمایش تمامی کاربران سیستم
-  users = User.objects.annotate(
-      total_earned=Coalesce(
-          Sum(
-              'transactions__amount',
-              filter=Q(transactions__transaction_type='earn'),
-          ),
-          Decimal('0'),
-          output_field=DecimalField(),
-      ),
-      total_payout=Coalesce(
-          Sum(
-              'transactions__amount',
-              filter=Q(transactions__transaction_type='payout'),
-          ),
-          Decimal('0'),
-          output_field=DecimalField(),
-      ),
-  ).order_by('username')  # مرتب‌سازی بر اساس نام کاربری
+    installers_data = []
+    for u in users:
+        balance = (u.total_earned or Decimal('0')) - (
+                u.total_payout or Decimal('0')
+        )
+        installers_data.append({
+            'user': u,
+            'total_earned': u.total_earned,
+            'total_payout': u.total_payout,
+            'balance': balance,
+        })
 
-  installers_data = []
-  for u in users:
-    balance = (u.total_earned or Decimal('0')) - (
-        u.total_payout or Decimal('0')
+    return render(
+        request, 'installer_management.html', {'installers': installers_data}
     )
-    installers_data.append({
-        'user': u,
-        'total_earned': u.total_earned,
-        'total_payout': u.total_payout,
-        'balance': balance,
-    })
 
-  return render(
-      request, 'installer_management.html', {'installers': installers_data}
-  )
 
 @staff_member_required
 def installer_payout_view(request, user_id):
-    """فرم تسویه حساب با نصاب"""
     installer = get_object_or_404(User, id=user_id)
 
-    # محاسبه موجودی فعلی
     earned = \
-    InstallerTransaction.objects.filter(installer=installer, transaction_type='earn').aggregate(s=Sum('amount'))[
-        's'] or 0
+        InstallerTransaction.objects.filter(installer=installer, transaction_type='earn').aggregate(s=Sum('amount'))[
+            's'] or 0
     payout = \
-    InstallerTransaction.objects.filter(installer=installer, transaction_type='payout').aggregate(s=Sum('amount'))[
-        's'] or 0
+        InstallerTransaction.objects.filter(installer=installer, transaction_type='payout').aggregate(s=Sum('amount'))[
+            's'] or 0
     balance = earned - payout
 
     if request.method == 'POST':
         amount = request.POST.get('amount')
         description = request.POST.get('description', 'تسویه حساب')
-        date_str = request.POST.get('date')  # تاریخ شمسی از فرم
+        date_str = request.POST.get('date')
 
         try:
-            # تبدیل تاریخ شمسی به میلادی
             p = [int(x) for x in date_str.split('/')]
             g_date = jdatetime.date(p[0], p[1], p[2]).togregorian()
 
@@ -556,13 +528,8 @@ def installer_payout_view(request, user_id):
     return render(request, 'installer_payout.html', context)
 
 
-# ==========================================
-# بخش پنل اختصاصی نصاب
-# ==========================================
-
 @login_required
 def installer_wallet_view(request):
-    """مشاهده کیف پول و تاریخچه توسط خود نصاب"""
     transactions = InstallerTransaction.objects.filter(installer=request.user).order_by('-date', '-id')
 
     earned = transactions.filter(transaction_type='earn').aggregate(s=Sum('amount'))['s'] or 0

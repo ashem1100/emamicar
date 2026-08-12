@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load humanize %}
-{% load jalali_tags %} <!-- لود کردن تگ‌های تاریخ شمسی -->
+{% load jalali_tags %}
 
 {% block extra_css %}
 <style>
@@ -10,20 +10,16 @@
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 20px;
     }
-
     .invoice-header {
         border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
         padding-bottom: 20px;
     }
-
     .info-box {
         background: #0f172a;
         border-radius: 12px;
         padding: 16px;
         border: 1px solid rgba(255, 255, 255, 0.05);
     }
-
-    /* اصلاح کامل بهم‌ریختگی نمایش پلاک */
     .plate-badge {
         background: #ffffff;
         color: #000000;
@@ -38,15 +34,9 @@
         letter-spacing: 1px;
     }
 
-    /* تنظیمات مخصوص پرینت فاکتور */
     @media print {
-        body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        nav, .no-print {
-            display: none !important;
-        }
+        body { background-color: #ffffff !important; color: #000000 !important; }
+        nav, .no-print { display: none !important; }
         .invoice-card {
             background: #ffffff !important;
             color: #000000 !important;
@@ -61,7 +51,6 @@
         .text-white, .text-secondary, .text-info, .text-warning {
             color: #000000 !important;
         }
-        /* برای اینکه در پرینت بک‌گراندها چاپ شوند */
         * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -73,7 +62,6 @@
 {% block content %}
 <div class="container py-4">
 
-    <!-- دکمه‌های بالای فاکتور -->
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <a href="javascript:history.back()" class="btn btn-outline-light rounded-pill px-4">
             <i class="fa-solid fa-arrow-right me-1"></i> بازگشت
@@ -83,10 +71,8 @@
         </button>
     </div>
 
-    <!-- کارت اصلی فاکتور -->
     <div class="invoice-card p-4 p-md-5 max-w-3xl mx-auto shadow-lg">
 
-        <!-- هدر فاکتور -->
         <div class="invoice-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
                 <h4 class="fw-bold mb-1 text-white d-flex align-items-center gap-2">
@@ -102,19 +88,22 @@
             </div>
         </div>
 
-        <!-- اطلاعات مشتری و خودرو -->
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6">
                 <div class="info-box h-100">
                     <span class="text-secondary small d-block mb-1">مشخصات خریدار:</span>
                     <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"بدون نام" }}</h5>
-                    <p class="text-secondary small mb-0">
+                    <p class="text-secondary small mb-2">
                         <i class="fa-solid fa-phone me-1 text-info"></i>
                         {{ sale.customer_phone|default:"شماره تماس ثبت نشده" }}
                     </p>
+                    <!-- نمایش مدل ماشین (جدید) -->
+                    <p class="text-secondary small mb-0">
+                        <i class="fa-solid fa-car me-1 text-info"></i> مدل خودرو:
+                        <strong class="text-white">{{ sale.car_model|default:"---" }}</strong>
+                    </p>
                 </div>
             </div>
-            <!-- کارت پلاک خودرو با طراحی واقعی و بدون بهم‌ریختگی -->
             <div class="col-12 col-md-6">
                 <div class="info-box h-100 d-flex flex-column justify-content-center">
                     <span class="text-secondary small d-block mb-2">پلاک خودرو ثبت شده:</span>
@@ -122,20 +111,13 @@
                         {% if sale.car_plate %}
                             {% with plate=sale.formatted_plate_parts %}
                                 {% if plate %}
-                                    <!-- پلاک کاملاً واقعی و شبیه‌سازی شده ایران -->
                                     <div class="d-inline-flex align-items-stretch bg-white text-dark rounded-2 border border-2 border-dark overflow-hidden fw-bold shadow-sm" style="direction: ltr; font-family: 'Vazirmatn', sans-serif;">
-                                        <!-- ۱. نوار آبی پرچم -->
                                         <div class="bg-primary text-white d-flex flex-column justify-content-center align-items-center px-1" style="font-size: 0.55rem; width: 22px;">
-                                            <span>🇮🇷</span>
-                                            <span>I.R.</span>
+                                            <span>🇮🇷</span><span>I.R.</span>
                                         </div>
-                                        <!-- ۲. دو رقم اول -->
                                         <div class="px-2 py-1 fs-5 d-flex align-items-center">{{ plate.p1 }}</div>
-                                        <!-- ۳. حرف فارسی -->
                                         <div class="px-1 py-1 fs-5 d-flex align-items-center text-primary">{{ plate.p2 }}</div>
-                                        <!-- ۴. سه رقم دوم -->
                                         <div class="px-2 py-1 fs-5 d-flex align-items-center">{{ plate.p3 }}</div>
-                                        <!-- ۵. بخش کد ایران -->
                                         <div class="border-start border-2 border-dark px-2 py-1 d-flex flex-column align-items-center justify-content-center bg-light" style="min-width: 45px;">
                                             <span style="font-size: 0.6rem; line-height: 1;" class="text-secondary">ایران</span>
                                             <span class="fs-6 lh-1 mt-1">{{ plate.iran }}</span>
@@ -155,7 +137,6 @@
             </div>
         </div>
 
-        <!-- جزئیات باتری فروخته شده -->
         <div class="info-box mb-4">
             <h6 class="fw-bold text-white mb-3 pb-2 border-bottom border-secondary border-opacity-25">
                 <i class="fa-solid fa-car-battery me-2 text-warning"></i>مشخصات باتری فروخته شده
@@ -176,7 +157,6 @@
             </div>
         </div>
 
-        <!-- اطلاعات تکنسین و وضعیت داغی -->
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6">
                 <div class="info-box h-100">
@@ -202,7 +182,6 @@
             </div>
         </div>
 
-        <!-- محاسبات مالی -->
         <div class="info-box bg-dark p-4 rounded-3 border border-secondary border-opacity-25">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary">قیمت پایه باتری (بدون کسر داغی):</span>
@@ -225,7 +204,6 @@
 
             <hr class="border-secondary opacity-25 my-3">
 
-            <!-- ردیف جدید: نمایش روش پرداخت -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <span class="text-secondary">روش پرداخت:</span>
                 <span class="text-white fw-bold">

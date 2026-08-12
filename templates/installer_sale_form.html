@@ -12,7 +12,6 @@
 
     .daghi-container { background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 15px; }
 
-    /* استایل باکس قیمت لایو */
     .live-price-box {
         background: linear-gradient(135deg, #0f172a, #1e293b);
         border: 2px solid #38bdf8;
@@ -43,7 +42,6 @@
 
             <div class="mb-3">
                 <label class="form-label text-secondary small">انتخاب باتری از انبار (*):</label>
-                <!-- اضافه شدن onchange و دیتا اتریبیوت‌ها -->
                 <select name="battery" id="batterySelect" class="form-select form-dark" required onchange="calculateLivePrice()">
                     <option value="">-- انتخاب باتری --</option>
                     {% for b in available_batteries %}
@@ -56,14 +54,20 @@
                 </select>
             </div>
 
+            <!-- مشخصات خریدار و خودرو (۳ ستونه) -->
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label text-secondary small">نام خریدار:</label>
                     <input type="text" name="customer_name" class="form-control form-dark">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label text-secondary small">تلفن مشتری:</label>
                     <input type="text" name="customer_phone" class="form-control form-dark" placeholder="09123456789">
+                </div>
+                <!-- فیلد جدید: مدل ماشین -->
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small">مدل ماشین (اختیاری):</label>
+                    <input type="text" name="car_model" class="form-control form-dark" placeholder="مثلا: پراید 111">
                 </div>
             </div>
 
@@ -84,7 +88,6 @@
                 </div>
             </div>
 
-            <!-- بخش ۴ ستونه: نصاب، سریال، روش پرداخت، تخفیف -->
             <div class="row g-3 mb-4">
                 <div class="col-md-6 col-lg-3">
                     <label class="form-label text-info small">نصب توسط:</label>
@@ -109,7 +112,6 @@
                 </div>
             </div>
 
-            <!-- وضعیت داغی -->
             <div class="daghi-container mb-4">
                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" name="has_daghi" id="daghiCheck" checked onchange="toggleDaghiFields(this.checked); calculateLivePrice();">
@@ -126,7 +128,6 @@
                 </div>
             </div>
 
-            <!-- باکس محاسبه زنده قیمت -->
             <div class="live-price-box p-3 mb-4 d-flex justify-content-between align-items-center">
                 <span class="text-info fw-bold"><i class="fa-solid fa-calculator me-2"></i>مبلغ نهایی فاکتور:</span>
                 <h3 class="text-white fw-bold mb-0" id="livePriceDisplay">0 <small class="fs-6 text-secondary">تومان</small></h3>
@@ -142,21 +143,17 @@
 
 {% block extra_js %}
 <script>
-    // گرفتن متغیرهای پایه از سرور برای محاسبات
     const daghiRate = parseInt("{{ settings.daghi_price_per_amper|default:'40000' }}");
     const profitPercent = parseInt("{{ settings.default_profit_percent|default:'20' }}");
 
-    // مدیریت نمایش/مخفی کردن فیلد داغی
     function toggleDaghiFields(checked) {
         document.getElementById('daghiFields').style.display = checked ? 'block' : 'none';
     }
 
-    // فرمولاتور اعداد (برای قرار دادن ویرگول)
     function formatCurrency(number) {
         return new Intl.NumberFormat('fa-IR').format(number);
     }
 
-    // ماشین‌حساب زنده
     function calculateLivePrice() {
         const batterySelect = document.getElementById('batterySelect');
         const selectedOption = batterySelect.options[batterySelect.selectedIndex];
@@ -164,18 +161,13 @@
         let finalPrice = 0;
 
         if (selectedOption && selectedOption.value) {
-            // خواندن دیتاهای مخفی شده در option
             const batteryAmperage = parseInt(selectedOption.getAttribute('data-amperage'));
             const brandRate = parseInt(selectedOption.getAttribute('data-brand-rate'));
 
-            // ۱. قیمت پایه
             const basePrice = batteryAmperage * brandRate;
-
-            // ۲. قیمت بدون داغی (اعمال درصد سود)
             const profitFactor = 1 + (profitPercent / 100);
             const priceWithoutDaghi = basePrice * profitFactor;
 
-            // ۳. محاسبه کسر داغی
             let daghiDiscount = 0;
             const hasDaghi = document.getElementById('daghiCheck').checked;
 
@@ -185,22 +177,16 @@
                 daghiDiscount = actualDaghiAmper * daghiRate;
             }
 
-            // ۴. کسر تخفیف دستی
             const discountInput = document.getElementById('discountInput').value;
             const manualDiscount = discountInput ? parseInt(discountInput) : 0;
 
-            // ۵. محاسبه قیمت نهایی
             finalPrice = priceWithoutDaghi - daghiDiscount - manualDiscount;
-
-            // جلوگیری از قیمت منفی
             if (finalPrice < 0) finalPrice = 0;
         }
 
-        // نمایش قیمت
         document.getElementById('livePriceDisplay').innerHTML = `${formatCurrency(finalPrice)} <small class="fs-6 text-secondary">تومان</small>`;
     }
 
-    // فراخوانی در زمان لود صفحه
     document.addEventListener("DOMContentLoaded", function() {
         calculateLivePrice();
     });
