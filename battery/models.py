@@ -3,7 +3,6 @@ from django.db import models
 from django.utils import timezone
 from decimal import Decimal
 
-
 class SystemSetting(models.Model):
     """تنظیمات کلی سیستم (قیمت روز داغی و درصد سود)"""
 
@@ -226,13 +225,17 @@ class Sale(models.Model):
         max_length=50, blank=True, null=True, verbose_name='پلاک ماشین'
     )
 
-    # فیلد جدید اضافه شده: مدل ماشین
     car_model = models.CharField(
         max_length=100, blank=True, null=True, verbose_name='مدل ماشین'
     )
 
     warranty_serial = models.CharField(
         max_length=100, verbose_name='سریال گارانتی'
+    )
+
+    # فیلد جدید: تاریخ پایان گارانتی
+    warranty_end_date = models.DateField(
+        blank=True, null=True, verbose_name='تاریخ پایان گارانتی'
     )
 
     has_daghi = models.BooleanField(default=True, verbose_name='تحویل داغی دارد؟')

@@ -165,7 +165,7 @@ def sale_list_view(request):
             Q(customer_name__icontains=search_query) |
             Q(customer_phone__icontains=search_query) |
             Q(car_plate__icontains=search_query) |
-            Q(car_model__icontains=search_query) |  # اضافه شدن امکان جستجو با مدل ماشین
+            Q(car_model__icontains=search_query) |
             Q(battery__serial_code__icontains=search_query)
         )
 
@@ -222,9 +222,10 @@ def sale_create_view(request):
         warranty_serial = request.POST.get('warranty_serial')
         installer_id = request.POST.get('installer')
         payment_method_id = request.POST.get('payment_method')
-        date_str = request.POST.get('sale_date')
 
-        # دریافت مدل ماشین
+        date_str = request.POST.get('sale_date')
+        warranty_end_date_str = request.POST.get('warranty_end_date')  # گرفتن فیلد جدید از فرم
+
         car_model = request.POST.get('car_model')
 
         discount_raw = request.POST.get('discount', '0')
@@ -250,6 +251,7 @@ def sale_create_view(request):
             )
         else:
             try:
+                # تبدیل تاریخ فروش
                 if date_str:
                     try:
                         parts = [int(x) for x in date_str.split('/')]
@@ -258,6 +260,15 @@ def sale_create_view(request):
                         sale_date = timezone.now().date()
                 else:
                     sale_date = timezone.now().date()
+
+                # تبدیل تاریخ پایان گارانتی
+                warranty_end_date = None
+                if warranty_end_date_str:
+                    try:
+                        w_parts = [int(x) for x in warranty_end_date_str.split('/')]
+                        warranty_end_date = jdatetime.date(w_parts[0], w_parts[1], w_parts[2]).togregorian()
+                    except Exception:
+                        pass  # اگر کاربر تاریخ نامعتبری وارد کرد، نادیده می‌گیریم چون اختیاری است
 
                 battery = Battery.objects.get(id=battery_id, status='available')
                 installer_user = User.objects.get(id=installer_id) if installer_id else None
@@ -268,8 +279,9 @@ def sale_create_view(request):
                     customer_name=customer_name,
                     customer_phone=customer_phone,
                     car_plate=car_plate,
-                    car_model=car_model,  # <--- ذخیره مدل ماشین
+                    car_model=car_model,
                     warranty_serial=warranty_serial,
+                    warranty_end_date=warranty_end_date,  # <--- ذخیره تاریخ پایان گارانتی
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
@@ -321,7 +333,8 @@ def installer_sale_create_view(request):
         warranty_serial = request.POST.get('warranty_serial')
         payment_method_id = request.POST.get('payment_method')
 
-        # دریافت مدل ماشین
+        warranty_end_date_str = request.POST.get('warranty_end_date')  # گرفتن فیلد جدید از فرم
+
         car_model = request.POST.get('car_model')
 
         discount_raw = request.POST.get('discount', '0')
@@ -343,6 +356,15 @@ def installer_sale_create_view(request):
             messages.error(request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.')
         else:
             try:
+                # تبدیل تاریخ پایان گارانتی
+                warranty_end_date = None
+                if warranty_end_date_str:
+                    try:
+                        w_parts = [int(x) for x in warranty_end_date_str.split('/')]
+                        warranty_end_date = jdatetime.date(w_parts[0], w_parts[1], w_parts[2]).togregorian()
+                    except Exception:
+                        pass
+
                 battery = Battery.objects.get(id=battery_id, status='available')
                 installer_user = request.user
                 payment_method_obj = PaymentMethod.objects.get(id=payment_method_id) if payment_method_id else None
@@ -352,8 +374,9 @@ def installer_sale_create_view(request):
                     customer_name=customer_name,
                     customer_phone=customer_phone,
                     car_plate=car_plate,
-                    car_model=car_model,  # <--- ذخیره مدل ماشین
+                    car_model=car_model,
                     warranty_serial=warranty_serial,
+                    warranty_end_date=warranty_end_date,  # <--- ذخیره تاریخ پایان گارانتی
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
@@ -401,7 +424,7 @@ def installer_sale_list_view(request):
             Q(customer_name__icontains=search_query)
             | Q(customer_phone__icontains=search_query)
             | Q(car_plate__icontains=search_query)
-            | Q(car_model__icontains=search_query)  # اضافه شدن امکان جستجو با مدل ماشین
+            | Q(car_model__icontains=search_query)
             | Q(battery__serial_code__icontains=search_query)
         )
 

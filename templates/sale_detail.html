@@ -5,56 +5,17 @@
 
 {% block extra_css %}
 <style>
-    .invoice-card {
-        background: #1e293b;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-    }
-    .invoice-header {
-        border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
-        padding-bottom: 20px;
-    }
-    .info-box {
-        background: #0f172a;
-        border-radius: 12px;
-        padding: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .plate-badge {
-        background: #ffffff;
-        color: #000000;
-        border: 2px solid #000000;
-        border-radius: 8px;
-        padding: 6px 14px;
-        font-weight: bold;
-        display: inline-block;
-        direction: ltr !important;
-        unicode-bidi: isolate;
-        font-size: 1.1rem;
-        letter-spacing: 1px;
-    }
+    .invoice-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; }
+    .invoice-header { border-bottom: 1px dashed rgba(255, 255, 255, 0.15); padding-bottom: 20px; }
+    .info-box { background: #0f172a; border-radius: 12px; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
 
     @media print {
         body { background-color: #ffffff !important; color: #000000 !important; }
         nav, .no-print { display: none !important; }
-        .invoice-card {
-            background: #ffffff !important;
-            color: #000000 !important;
-            border: 1px solid #ddd !important;
-            box-shadow: none !important;
-        }
-        .info-box {
-            background: #f8fafc !important;
-            color: #000000 !important;
-            border: 1px solid #cbd5e1 !important;
-        }
-        .text-white, .text-secondary, .text-info, .text-warning {
-            color: #000000 !important;
-        }
-        * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
+        .invoice-card { background: #ffffff !important; color: #000000 !important; border: 1px solid #ddd !important; box-shadow: none !important; }
+        .info-box { background: #f8fafc !important; color: #000000 !important; border: 1px solid #cbd5e1 !important; }
+        .text-white, .text-secondary, .text-info, .text-warning { color: #000000 !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
 </style>
 {% endblock %}
@@ -67,7 +28,7 @@
             <i class="fa-solid fa-arrow-right me-1"></i> بازگشت
         </a>
         <button onclick="window.print()" class="btn btn-primary rounded-pill px-4">
-            <i class="fa-solid fa-print me-1"></i> چاپ / دریافت PDF فاکتور
+            <i class="fa-solid fa-print me-1"></i> چاپ PDF
         </button>
     </div>
 
@@ -83,7 +44,7 @@
             </div>
             <div class="text-md-end">
                 <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill mb-1 d-inline-block">
-                    تاریخ: {{ sale.sale_date|to_jalali:'%Y/%m/%d' }}
+                    تاریخ ثبت: {{ sale.sale_date|to_jalali:'%Y/%m/%d' }}
                 </span>
             </div>
         </div>
@@ -92,16 +53,11 @@
             <div class="col-12 col-md-6">
                 <div class="info-box h-100">
                     <span class="text-secondary small d-block mb-1">مشخصات خریدار:</span>
-                    <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"بدون نام" }}</h5>
-                    <p class="text-secondary small mb-2">
-                        <i class="fa-solid fa-phone me-1 text-info"></i>
-                        {{ sale.customer_phone|default:"شماره تماس ثبت نشده" }}
-                    </p>
-                    <!-- نمایش مدل ماشین (جدید) -->
-                    <p class="text-secondary small mb-0">
-                        <i class="fa-solid fa-car me-1 text-info"></i> مدل خودرو:
-                        <strong class="text-white">{{ sale.car_model|default:"---" }}</strong>
-                    </p>
+                    <h5 class="fw-bold text-white mb-3">{{ sale.customer_name|default:"بدون نام" }}</h5>
+                    <div class="d-flex flex-column gap-2 text-secondary small">
+                        <span><i class="fa-solid fa-phone me-1 text-info w-15px text-center"></i> {{ sale.customer_phone|default:"ثبت نشده" }}</span>
+                        <span><i class="fa-solid fa-car me-1 text-info w-15px text-center"></i> مدل خودرو: <strong class="text-white">{{ sale.car_model|default:"---" }}</strong></span>
+                    </div>
                 </div>
             </div>
             <div class="col-12 col-md-6">
@@ -124,9 +80,7 @@
                                         </div>
                                     </div>
                                 {% else %}
-                                    <div class="badge bg-white text-dark border border-dark dir-ltr fs-6">
-                                        {{ sale.car_plate }}
-                                    </div>
+                                    <div class="badge bg-white text-dark border border-dark dir-ltr fs-6">{{ sale.car_plate }}</div>
                                 {% endif %}
                             {% endwith %}
                         {% else %}
@@ -139,7 +93,7 @@
 
         <div class="info-box mb-4">
             <h6 class="fw-bold text-white mb-3 pb-2 border-bottom border-secondary border-opacity-25">
-                <i class="fa-solid fa-car-battery me-2 text-warning"></i>مشخصات باتری فروخته شده
+                <i class="fa-solid fa-car-battery me-2 text-warning"></i>مشخصات باتری و گارانتی
             </h6>
             <div class="row g-3">
                 <div class="col-6 col-md-3">
@@ -153,6 +107,16 @@
                 <div class="col-6 col-md-3">
                     <span class="text-secondary small d-block mb-1">سریال باتری:</span>
                     <strong class="text-warning">{{ sale.warranty_serial|default:"---" }}</strong>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-secondary small d-block mb-1">پایان گارانتی:</span>
+                    <strong class="text-info">
+                        {% if sale.warranty_end_date %}
+                            {{ sale.warranty_end_date|to_jalali:'%Y/%m/%d' }}
+                        {% else %}
+                            <span class="text-secondary opacity-75">ثبت نشده</span>
+                        {% endif %}
+                    </strong>
                 </div>
             </div>
         </div>
@@ -219,7 +183,7 @@
 
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="fw-bold mb-0 text-white">مبلغ نهایی پرداختی:</h5>
-                <h4 class="fw-bold mb-0 text-success fs-3">{{ sale.final_sale_price|intcomma }} تومان</h4>
+                <h4 class="fw-bold mb-0 text-success fs-3">{{ sale.final_sale_price|intcomma }} <small class="fs-6 text-white fw-normal">تومان</small></h4>
             </div>
         </div>
 
