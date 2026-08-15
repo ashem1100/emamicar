@@ -113,9 +113,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                <!-- تغییر کلیدی: step="1" و حذف min -->
                 <div class="col-12 col-md-4">
-                    <label class="form-label text-warning small fw-bold">تخفیف دستی (تومان):</label>
-                    <input type="number" name="discount" id="discountInput" class="form-control form-dark" placeholder="0" min="0" step="1000" oninput="calculateLivePrice()">
+                    <label class="form-label text-warning small fw-bold">تخفیف / اضافه بها (تومان):</label>
+                    <input type="number" name="discount" id="discountInput" class="form-control form-dark" placeholder="تخفیف (+) | افزایش (-)" step="1" dir="ltr" oninput="calculateLivePrice()">
                 </div>
             </div>
 
