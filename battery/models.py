@@ -343,9 +343,7 @@ class Sale(models.Model):
             else Decimal('20')
         )
 
-        current_brand_rate = Decimal(
-            str(self.battery.brand.selling_price_per_amper)
-        )
+        current_brand_rate = Decimal(str(self.battery.brand.selling_price_per_amper))
         new_battery_amperage = Decimal(str(self.battery.numeric_amperage))
         base_price = new_battery_amperage * current_brand_rate
 
@@ -358,11 +356,14 @@ class Sale(models.Model):
         else:
             self.daghi_discount = Decimal('0')
 
-        manual_discount = self.discount or Decimal('0')
-        calculated_final = (
-                self.sale_price_without_daghi - self.daghi_discount - manual_discount
-        )
-        self.final_sale_price = max(Decimal('0'), calculated_final)
+        # اگر final_sale_price از قبل ست شده (توسط ویو)، دست نزن
+        # در غیر این صورت محاسبه خودکار کن (برای سازگاری با ادمین)
+        if not self.final_sale_price:
+            manual_discount = self.discount or Decimal('0')
+            calculated_final = (
+                    self.sale_price_without_daghi - self.daghi_discount - manual_discount
+            )
+            self.final_sale_price = max(Decimal('0'), calculated_final)
 
         is_new = self.pk is None
         super().save(*args, **kwargs)
