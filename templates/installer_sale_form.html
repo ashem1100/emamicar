@@ -96,37 +96,44 @@
                 </div>
             </div>
 
-            <!-- بخش ۳: گارانتی و تسویه -->
-            <div class="section-title fw-bold"><i class="fa-solid fa-shield-halved me-2 text-info"></i>گارانتی و تسویه</div>
-            <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-secondary small">سریال گارانتی (*):</label>
-                    <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="سریال روی باتری">
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-secondary small">پایان گارانتی (اختیاری):</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-calendar-check"></i></span>
-                        <input type="text" name="warranty_end_date" data-jdp class="form-control form-dark text-center" placeholder="انتخاب تاریخ" style="letter-spacing: 1px;" readonly>
-                    </div>
-                </div>
-            </div>
+<!-- بخش ۳: گارانتی و تسویه -->
+<div class="section-title fw-bold"><i class="fa-solid fa-shield-halved me-2 text-info"></i>گارانتی و تسویه</div>
+<div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+        <label class="form-label text-secondary small">تاریخ فروش (*):</label>
+        <div class="input-group">
+            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-regular fa-calendar"></i></span>
+            <input type="text" name="sale_date" data-jdp value="{{ today_jalali }}" class="form-control form-dark text-center fw-bold" style="letter-spacing: 1px;" required readonly>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <label class="form-label text-secondary small">پایان گارانتی (اختیاری):</label>
+        <div class="input-group">
+            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-calendar-check"></i></span>
+            <input type="text" name="warranty_end_date" data-jdp class="form-control form-dark text-center" placeholder="انتخاب تاریخ" style="letter-spacing: 1px;" readonly>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <label class="form-label text-secondary small">سریال گارانتی (*):</label>
+        <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="کد گارانتی روی باتری">
+    </div>
+</div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-info small">نصب توسط:</label>
-                    <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-secondary small">روش پرداخت (*):</label>
-                    <select name="payment_method" class="form-select form-dark" required>
-                        <option value="" disabled selected>-- انتخاب کنید --</option>
-                        {% for pm in payment_methods %}
-                            <option value="{{ pm.id }}">{{ pm.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6">
+        <label class="form-label text-info small">نصب توسط:</label>
+        <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label text-secondary small">روش پرداخت (*):</label>
+        <select name="payment_method" class="form-select form-dark" required>
+            <option value="" disabled selected>-- انتخاب کنید --</option>
+            {% for pm in payment_methods %}
+                <option value="{{ pm.id }}">{{ pm.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
 
             <!-- وضعیت داغی -->
             <div class="daghi-container mb-4">

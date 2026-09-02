@@ -342,7 +342,8 @@ def installer_sale_create_view(request):
         warranty_serial = request.POST.get('warranty_serial')
         payment_method_id = request.POST.get('payment_method')
 
-        warranty_end_date_str = request.POST.get('warranty_end_date')  # گرفتن فیلد جدید از فرم
+        date_str = request.POST.get('sale_date')  # دریافت تاریخ فروش
+        warranty_end_date_str = request.POST.get('warranty_end_date')  # تاریخ پایان گارانتی
 
         car_model = request.POST.get('car_model')
 
@@ -371,6 +372,16 @@ def installer_sale_create_view(request):
             messages.error(request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.')
         else:
             try:
+                # تبدیل تاریخ فروش به میلادی
+                if date_str:
+                    try:
+                        parts = [int(x) for x in date_str.split('/')]
+                        sale_date = jdatetime.date(parts[0], parts[1], parts[2]).togregorian()
+                    except Exception:
+                        sale_date = timezone.now().date()
+                else:
+                    sale_date = timezone.now().date()
+
                 # تبدیل تاریخ پایان گارانتی
                 warranty_end_date = None
                 if warranty_end_date_str:
@@ -397,6 +408,7 @@ def installer_sale_create_view(request):
                     installer=installer_user,
                     discount=discount_val,
                     payment_method=payment_method_obj,
+                    sale_date=sale_date,
                     **({"final_sale_price": final_price_val} if final_price_val is not None else {}),
                 )
 
@@ -410,16 +422,16 @@ def installer_sale_create_view(request):
     daghi_choices = Sale.DAGHI_AMPERAGE_CHOICES
     payment_methods = PaymentMethod.objects.filter(is_active=True)
     settings = SystemSetting.objects.last()
+    today_jalali = jdatetime.date.today().strftime('%Y/%m/%d')
 
     context = {
         'available_batteries': available_batteries,
         'daghi_choices': daghi_choices,
         'payment_methods': payment_methods,
         'settings': settings,
+        'today_jalali': today_jalali,
     }
     return render(request, 'installer_sale_form.html', context)
-
-
 @login_required
 def installer_dashboard_view(request):
     """داشبورد اختصاصی نصاب - فقط صفحه خوش‌آمدگویی و دسترسی سریع"""

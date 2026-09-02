@@ -4,41 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}پنل کاربری{% endblock %}</title>
+    <title>{% block title %}پنل کاربری نصاب{% endblock %}</title>
 
     <!-- Bootstrap RTL Local -->
     <link rel="stylesheet" href="{% static 'css/bootstrap.rtl.css' %}">
 
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Vazirmatn Persian Font -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    <!-- FontAwesome Icons (Local) -->
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}">
+
+    <!-- Vazirmatn Persian Font (Local) -->
+    <link href="{% static 'css/font.css' %}" rel="stylesheet">
+
+    <!-- Jalali Datepicker (Local) -->
+    <link rel="stylesheet" href="{% static 'css/jalalidatepicker.min.css' %}">
 
     <style>
         body {
-            font-family: 'Vazirmatn', sans-serif;
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #0f172a;
             color: #f8fafc;
             min-height: 100vh;
         }
 
         .navbar-custom {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .stat-card {
             background: #1e293b;
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             height: 100%;
         }
 
         .stat-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
         .stat-icon {
@@ -98,18 +103,17 @@
             border: 1px solid rgba(245, 158, 11, 0.4);
         }
 
-
-        /* جلوگیری از کلفت شدن باکس فیلتر در موبایل */
+        /* اسکرول‌بار افقی تمیز برای بخش فیلترها */
         .filter-scroll-wrapper {
             overflow-x: auto;
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* برای مرورگرهای مدرن */
+            scrollbar-width: none;
             padding-bottom: 4px;
         }
 
         .filter-scroll-wrapper::-webkit-scrollbar {
-            display: none; /* مخفی کردن نوار اسکرول زشت در کروم و سافاری */
+            display: none;
         }
 
         .filter-btn-group .btn {
@@ -117,6 +121,7 @@
             padding-top: 6px;
             padding-bottom: 6px;
         }
+
         .chart-card {
             background: #1e293b;
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -124,28 +129,64 @@
             padding: 20px;
             height: 100%;
         }
+
+        /* اصلاح نمایش فیلدهای تقویم شمسی */
+        jdp-container {
+            font-family: 'Vazirmatn', sans-serif !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+            z-index: 99999 !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-    <!-- ناوبار مشترک برای تمام صفحات -->
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top py-3">
+    <!-- ناوبار مشترک برای پنل نصاب -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top py-2 py-md-3">
         <div class="container-fluid px-3 px-md-4">
             <a class="navbar-brand text-white fw-bold d-flex align-items-center gap-2" href="{% url 'installer_dashboard' %}">
                 <i class="fa-solid fa-car-battery text-warning fs-4 me-1"></i>
-                <span class="fs-6 fs-md-5">پنل کاربری فروش باتری</span>
+                <span class="fs-6 fs-md-5">پنل فروش و خدمات نصاب</span>
             </a>
-            
+
+            <!-- منوی هدر نصاب -->
+            <div class="d-flex align-items-center gap-1 gap-md-2 overflow-x-auto">
+                <a href="{% url 'installer_dashboard' %}" class="btn btn-outline-light btn-sm rounded-pill px-2 px-md-3 text-nowrap">
+                    <i class="fa-solid fa-gauge me-1"></i> داشبورد
+                </a>
+
+                <a href="{% url 'installer_sale_list' %}" class="btn btn-outline-info btn-sm rounded-pill px-2 px-md-3 text-nowrap">
+                    <i class="fa-solid fa-list-check me-1"></i> فاکتورهای من
+                </a>
+
+                <a href="{% url 'installer_wallet' %}" class="btn btn-outline-warning btn-sm rounded-pill px-2 px-md-3 text-nowrap">
+                    <i class="fa-solid fa-wallet me-1"></i> کیف پول / درآمد
+                </a>
+            </div>
         </div>
     </nav>
 
-    <!-- محتوای اصلی هر صفحه اینجا قرار می‌گیرد -->
+    <!-- محتوای اصلی هر صفحه -->
     {% block content %}
     {% endblock %}
 
     <!-- Bootstrap Local JS -->
     <script src="{% static 'js/bootstrap.bundle.js' %}"></script>
+
+    <!-- Jalali Datepicker Local JS -->
+    <script src="{% static 'js/jalalidatepicker.min.js' %}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            jalaliDatepicker.startWatch({
+                separatorChar: "/",
+                minDate: "attr",
+                maxDate: "attr",
+                changeMonthRotateYear: true
+            });
+        });
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
