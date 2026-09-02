@@ -11,7 +11,7 @@
 
     @media (min-width: 768px) {
         .border-start-md {
-            border-right: 1px solid rgba(255, 255, 255, 0.15) !important; /* برای چیدمان راست‌به‌چپ RTL */
+            border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
         }
         .border-top-md-0 {
             border-top: none !important;
@@ -47,7 +47,7 @@
         <form method="POST">
             {% csrf_token %}
 
-            <!-- بخش ۱: باتری (بدون مودال افزودن سریع) -->
+            <!-- بخش ۱: باتری -->
             <div class="section-title fw-bold"><i class="fa-solid fa-car-battery me-2 text-info"></i>باتری فروخته شده</div>
             <div class="mb-4">
                 <label class="form-label text-secondary small">انتخاب باتری از انبار (*):</label>
@@ -62,7 +62,7 @@
             </div>
 
             <!-- بخش ۲: مشتری و خودرو -->
-            <div class="section-title fw-bold"><i class="fa-solid fa-user-tag me-2 text-info"></i>مشتری و خودرو</div>
+            <div class="section-title fw-bold"><i class="fa-solid fa-user-tag me-2 text-info"></i>مشخصات مشتری و خودرو</div>
             <div class="row g-3 mb-3">
                 <div class="col-12 col-md-4">
                     <label class="form-label text-secondary small">نام خریدار:</label>
@@ -96,44 +96,44 @@
                 </div>
             </div>
 
-<!-- بخش ۳: گارانتی و تسویه -->
-<div class="section-title fw-bold"><i class="fa-solid fa-shield-halved me-2 text-info"></i>گارانتی و تسویه</div>
-<div class="row g-3 mb-3">
-    <div class="col-12 col-md-4">
-        <label class="form-label text-secondary small">تاریخ فروش (*):</label>
-        <div class="input-group">
-            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-regular fa-calendar"></i></span>
-            <input type="text" name="sale_date" data-jdp value="{{ today_jalali }}" class="form-control form-dark text-center fw-bold" style="letter-spacing: 1px;" required readonly>
-        </div>
-    </div>
-    <div class="col-12 col-md-4">
-        <label class="form-label text-secondary small">پایان گارانتی (اختیاری):</label>
-        <div class="input-group">
-            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-calendar-check"></i></span>
-            <input type="text" name="warranty_end_date" data-jdp class="form-control form-dark text-center" placeholder="انتخاب تاریخ" style="letter-spacing: 1px;" readonly>
-        </div>
-    </div>
-    <div class="col-12 col-md-4">
-        <label class="form-label text-secondary small">سریال گارانتی (*):</label>
-        <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="کد گارانتی روی باتری">
-    </div>
-</div>
+            <!-- بخش ۳: گارانتی و تسویه -->
+            <div class="section-title fw-bold"><i class="fa-solid fa-shield-halved me-2 text-info"></i>گارانتی و تسویه</div>
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-secondary small">تاریخ فروش (*):</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-regular fa-calendar"></i></span>
+                        <input type="text" name="sale_date" data-jdp value="{{ today_jalali }}" class="form-control form-dark text-center fw-bold" style="letter-spacing: 1px;" required readonly>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-secondary small">پایان گارانتی (اختیاری):</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fa-solid fa-calendar-check"></i></span>
+                        <input type="text" name="warranty_end_date" data-jdp class="form-control form-dark text-center" placeholder="انتخاب تاریخ" style="letter-spacing: 1px;" readonly>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-secondary small">سریال گارانتی (*):</label>
+                    <input type="text" name="warranty_serial" class="form-control form-dark" required placeholder="کد گارانتی روی باتری">
+                </div>
+            </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-12 col-md-6">
-        <label class="form-label text-info small">نصب توسط:</label>
-        <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
-    </div>
-    <div class="col-12 col-md-6">
-        <label class="form-label text-secondary small">روش پرداخت (*):</label>
-        <select name="payment_method" class="form-select form-dark" required>
-            <option value="" disabled selected>-- انتخاب کنید --</option>
-            {% for pm in payment_methods %}
-                <option value="{{ pm.id }}">{{ pm.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6">
+                    <label class="form-label text-info small">نصب توسط:</label>
+                    <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label text-secondary small">روش پرداخت (*):</label>
+                    <select name="payment_method" class="form-select form-dark" required>
+                        <option value="" disabled selected>-- انتخاب کنید --</option>
+                        {% for pm in payment_methods %}
+                            <option value="{{ pm.id }}">{{ pm.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
             <!-- وضعیت داغی -->
             <div class="daghi-container mb-4">
@@ -154,7 +154,6 @@
 
             <!-- باکس اطلاعات قیمت‌گذاری و سود زنده -->
             <div class="live-price-box p-3 p-md-4 mb-4">
-                <!-- هدر: عنوان و درصد سود -->
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <p class="text-info fw-bold mb-0 small">
                         <i class="fa-solid fa-calculator me-2"></i>محاسبه قیمت پیشنهادی
@@ -176,7 +175,7 @@
                     </div>
                 </div>
 
-                <!-- باکس نمایش قیمت‌ها (در موبایل ۲ در ۲، در دسکتاپ ۴ ستونه) -->
+                <!-- باکس نمایش قیمت‌ها -->
                 <div class="row g-2 text-center mb-3 py-2 bg-dark bg-opacity-50 rounded-3">
                     <div class="col-6 col-md-3 py-1">
                         <div class="text-secondary small mb-1" style="font-size: 0.75rem;">قیمت خرید (پایه)</div>
@@ -205,39 +204,54 @@
 
                 <hr style="border-color: rgba(255,255,255,0.1);">
 
-                <!-- فیلدهای ورودی -->
+                <!-- فیلدهای ورودی مالی (تفکیک تخفیف و اضافه‌بها) -->
                 <div class="row g-3">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-warning small fw-bold">تخفیف / اضافه بها (تومان):</label>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label text-info small fw-bold">تخفیف (تومان):</label>
                         <input
                             type="text"
                             inputmode="numeric"
                             name="discount"
                             id="discountInput"
                             class="form-control form-dark text-center"
-                            placeholder="تخفیف (+) | افزایش (-)"
+                            placeholder="0"
                             dir="ltr"
                             oninput="calculateLivePrice()"
                         >
-                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">مثبت برای تخفیف، منفی برای گرانی</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.65rem;">کسر از مبلغ نهایی</div>
                     </div>
 
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-white fw-bold small">مبلغ داغی دریافتی (تومان):</label>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label text-warning small fw-bold">اضافه‌بها (تومان):</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="surcharge"
+                            id="surchargeInput"
+                            class="form-control form-dark text-center"
+                            placeholder="0"
+                            dir="ltr"
+                            oninput="calculateLivePrice()"
+                        >
+                        <div class="text-secondary mt-1" style="font-size: 0.65rem;">ایاب‌وذهاب، خدمات مازاد</div>
+                    </div>
+
+                    <div class="col-6 col-md-3">
+                        <label class="form-label text-white fw-bold small">مبلغ داغی دریافتی:</label>
                         <input
                             type="text"
                             inputmode="numeric"
                             name="daghi_received_price"
                             id="daghiReceivedInput"
                             class="form-control form-dark text-center fw-bold"
-                            placeholder="مبلغ داغی دریافتی"
+                            placeholder="مبلغ داغی"
                             dir="ltr"
                         >
-                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">قابل ویرایش دستی</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.65rem;">قابل ویرایش دستی</div>
                     </div>
 
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-success fw-bold small">قیمت نهایی فاکتور (*) (تومان):</label>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label text-success fw-bold small">قیمت نهایی فاکتور (*):</label>
                         <input
                             type="text"
                             inputmode="numeric"
@@ -248,7 +262,7 @@
                             dir="ltr"
                             required
                         >
-                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">مبلغی که از مشتری دریافت می‌شود</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.65rem;">مبلغ دریافتی از خریدار</div>
                     </div>
                 </div>
             </div>
@@ -297,8 +311,8 @@
         const batterySelect = document.getElementById('batterySelect');
         const selectedOption = batterySelect.options[batterySelect.selectedIndex];
 
-        // خواندن مقادیر عددی با نرمال‌سازی فارسی/انگلیسی
         const discountVal = parseInputValue(document.getElementById('discountInput').value);
+        const surchargeVal = parseInputValue(document.getElementById('surchargeInput').value);
         const liveProfitPercent = parseInputValue(document.getElementById('profitPercentInput').value);
 
         let rawPrice = 0;
@@ -312,8 +326,6 @@
 
             rawPrice = batteryAmperage * brandRate;
             profitAmount = rawPrice * (liveProfitPercent / 100);
-
-            // قیمت پایه باتری با سود
             computedPriceWithoutDaghi = rawPrice + profitAmount;
 
             const hasDaghi = document.getElementById('daghiCheck').checked;
@@ -324,17 +336,15 @@
             }
         }
 
-        // قیمت پیشنهادی نهایی = قیمت با احتساب سود - ارزش داغی - تخفیف
-        const suggestedFinal = Math.max(0, computedPriceWithoutDaghi - computedDaghiDiscount - discountVal);
+        // قیمت نهایی = قیمت پایه - ارزش داغی - تخفیف + اضافه‌بها
+        const suggestedFinal = Math.max(0, computedPriceWithoutDaghi - computedDaghiDiscount - discountVal + surchargeVal);
 
-        // به‌روزرسانی نمایشگرهای وضعیت
         document.getElementById('baseRawPrice').textContent = formatCurrency(rawPrice);
         document.getElementById('profitPercentLabel').textContent = new Intl.NumberFormat('fa-IR').format(liveProfitPercent);
         document.getElementById('profitAmountDisplay').textContent = formatCurrency(profitAmount);
         document.getElementById('daghiDiscountSuggested').textContent = formatCurrency(computedDaghiDiscount);
         document.getElementById('suggestedPrice').textContent = formatCurrency(suggestedFinal);
 
-        // پر کردن خودکار اینپوت‌ها در صورتی که کاربر دستی ویرایش نکرده باشد
         const daghiInput = document.getElementById('daghiReceivedInput');
         const finalInput = document.getElementById('finalPriceInput');
 
@@ -350,11 +360,12 @@
         const daghiInput = document.getElementById('daghiReceivedInput');
         const finalInput = document.getElementById('finalPriceInput');
         const discountVal = parseInputValue(document.getElementById('discountInput').value);
+        const surchargeVal = parseInputValue(document.getElementById('surchargeInput').value);
 
         daghiInput.dataset.userModified = 'true';
         const daghiVal = parseInputValue(daghiInput.value);
 
-        const newFinal = Math.max(0, computedPriceWithoutDaghi - daghiVal - discountVal);
+        const newFinal = Math.max(0, computedPriceWithoutDaghi - daghiVal - discountVal + surchargeVal);
 
         if (!finalInput.dataset.userModified) {
             finalInput.value = Math.round(newFinal) || '';

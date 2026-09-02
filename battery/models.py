@@ -1,7 +1,8 @@
+from decimal import Decimal
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from decimal import Decimal
+
 
 class SystemSetting(models.Model):
     """تنظیمات کلی سیستم (قیمت روز داغی و درصد سود)"""
@@ -13,8 +14,10 @@ class SystemSetting(models.Model):
         default=20, verbose_name="درصد سود پیش‌فرض فروش"
     )
     installation_fee = models.DecimalField(
-        max_digits=10, decimal_places=0, default=250000,
-        verbose_name="اجرت نصب پایه (تومان)"
+        max_digits=10,
+        decimal_places=0,
+        default=250000,
+        verbose_name="اجرت نصب پایه (تومان)",
     )
 
     class Meta:
@@ -123,7 +126,7 @@ class PurchaseItem(models.Model):
                     f"{self.invoice.invoice_number}-{brand_code}{self.amperage}-{i}"
                 )
                 unit_purchase_price = (
-                        self.numeric_amperage * self.purchase_price_per_amper
+                    self.numeric_amperage * self.purchase_price_per_amper
                 )
                 Battery.objects.create(
                     purchase_item=self,
@@ -144,7 +147,11 @@ class Battery(models.Model):
     )
 
     purchase_item = models.ForeignKey(
-        PurchaseItem, on_delete=models.CASCADE, related_name="batteries", null=True, blank=True
+        PurchaseItem,
+        on_delete=models.CASCADE,
+        related_name="batteries",
+        null=True,
+        blank=True,
     )
     brand = models.ForeignKey(
         Brand, on_delete=models.PROTECT, verbose_name="برند"
@@ -155,7 +162,7 @@ class Battery(models.Model):
         decimal_places=0,
         verbose_name="قیمت خرید واقعی فاکتور (تومان)",
         blank=True,
-        null=True
+        null=True,
     )
     serial_code = models.CharField(
         max_length=50, unique=True, verbose_name="کد کوتاه باتری"
@@ -186,7 +193,10 @@ class Battery(models.Model):
 
 class PaymentMethod(models.Model):
     """مدیریت روش‌های پرداخت از طریق ادمین"""
-    name = models.CharField(max_length=100, verbose_name="روش پرداخت (مثل: کارتخوان، نقدی)")
+
+    name = models.CharField(
+        max_length=100, verbose_name="روش پرداخت (مثل: کارتخوان، نقدی)"
+    )
     is_active = models.BooleanField(default=True, verbose_name="وضعیت فعال")
 
     class Meta:
@@ -233,7 +243,6 @@ class Sale(models.Model):
         max_length=100, verbose_name='سریال گارانتی'
     )
 
-    # فیلد جدید: تاریخ پایان گارانتی
     warranty_end_date = models.DateField(
         blank=True, null=True, verbose_name='تاریخ پایان گارانتی'
     )
@@ -245,26 +254,32 @@ class Sale(models.Model):
         blank=True,
         null=True,
         verbose_name='آمپر داغی تحویلی (در صورت متفاوت بودن)',
-        help_text=(
-            'اگر خالی بماند، به صورت خودکار برابر با آمپر باتری نو محاسبه'
-            ' می‌شود.'
-        ),
+        help_text='اگر خالی بماند، برابر با آمپر باتری نو محاسبه می‌شود.',
     )
 
     installer = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         verbose_name='نصاب / فروشنده',
     )
     sale_date = models.DateField(default=timezone.now, verbose_name='تاریخ فروش')
 
+    # تفکیک تخفیف و اضافه‌بها
     discount = models.DecimalField(
         max_digits=12,
         decimal_places=0,
         default=Decimal('0'),
         verbose_name='مبلغ تخفیف (تومان)',
-        help_text='مبلغ تخفیفی که دستی از فاکتور کسر می‌شود',
+        help_text='مبلغ تخفیف کسر شده از فاکتور',
+    )
+    surcharge = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=Decimal('0'),
+        verbose_name='اضافه‌بها / خدمات مازاد (تومان)',
+        help_text='مبالغ افزوده شده بابت خدمات جانبی، ایاب‌وذهاب و...',
     )
 
     sale_price_without_daghi = models.DecimalField(
@@ -290,7 +305,7 @@ class Sale(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name='روش پرداخت'
+        verbose_name='روش پرداخت',
     )
 
     class Meta:
@@ -356,12 +371,15 @@ class Sale(models.Model):
         else:
             self.daghi_discount = Decimal('0')
 
-        # اگر final_sale_price از قبل ست شده (توسط ویو)، دست نزن
-        # در غیر این صورت محاسبه خودکار کن (برای سازگاری با ادمین)
+        # در صورتی که قیمت نهایی از فرم ارسال نشده باشد، فرمول تفکیک‌شده اعمال می‌شود:
         if not self.final_sale_price:
             manual_discount = self.discount or Decimal('0')
+            manual_surcharge = self.surcharge or Decimal('0')
             calculated_final = (
-                    self.sale_price_without_daghi - self.daghi_discount - manual_discount
+                self.sale_price_without_daghi
+                - self.daghi_discount
+                - manual_discount
+                + manual_surcharge
             )
             self.final_sale_price = max(Decimal('0'), calculated_final)
 
@@ -374,7 +392,9 @@ class Sale(models.Model):
 
             if self.installer:
                 settings = SystemSetting.objects.last()
-                fee_amount = settings.installation_fee if settings else Decimal('250000')
+                fee_amount = (
+                    settings.installation_fee if settings else Decimal('250000')
+                )
 
                 if fee_amount > 0:
                     InstallerTransaction.objects.create(
@@ -382,7 +402,10 @@ class Sale(models.Model):
                         transaction_type='earn',
                         amount=fee_amount,
                         sale=self,
-                        description=f'اجرت نصب فاکتور شماره {self.id} (پلاک: {self.car_plate})'
+                        description=(
+                            f'اجرت نصب فاکتور شماره {self.id} (پلاک:'
+                            f' {self.car_plate})'
+                        ),
                     )
 
 
@@ -392,11 +415,28 @@ class InstallerTransaction(models.Model):
         ('payout', 'تسویه حساب (بدهکار)'),
     )
 
-    installer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions', verbose_name="نصاب")
-    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES, verbose_name="نوع تراکنش")
-    amount = models.DecimalField(max_digits=12, decimal_places=0, verbose_name="مبلغ (تومان)")
-    sale = models.ForeignKey('Sale', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="بابت فاکتور")
-    description = models.CharField(max_length=255, blank=True, null=True, verbose_name="توضیحات")
+    installer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='transactions',
+        verbose_name="نصاب",
+    )
+    transaction_type = models.CharField(
+        max_length=10, choices=TRANSACTION_TYPES, verbose_name="نوع تراکنش"
+    )
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=0, verbose_name="مبلغ (تومان)"
+    )
+    sale = models.ForeignKey(
+        'Sale',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="بابت فاکتور",
+    )
+    description = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="توضیحات"
+    )
     date = models.DateField(default=timezone.now, verbose_name="تاریخ تراکنش")
 
     class Meta:
@@ -404,4 +444,7 @@ class InstallerTransaction(models.Model):
         verbose_name_plural = "کیف پول نصاب‌ها"
 
     def __str__(self):
-        return f"{self.installer.username} - {self.get_transaction_type_display()} - {self.amount}"
+        return (
+            f"{self.installer.username} - {self.get_transaction_type_display()}"
+            f" - {self.amount}"
+        )

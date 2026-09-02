@@ -225,20 +225,32 @@ def sale_create_view(request):
         payment_method_id = request.POST.get('payment_method')
 
         date_str = request.POST.get('sale_date')
-        warranty_end_date_str = request.POST.get('warranty_end_date')  # گرفتن فیلد جدید از فرم
+        warranty_end_date_str = request.POST.get('warranty_end_date')
 
         car_model = request.POST.get('car_model')
 
+        # دریافت تخفیف
         discount_raw = request.POST.get('discount', '0')
         try:
-            discount_val = int(discount_raw) if discount_raw else 0
-        except ValueError:
-            discount_val = 0
+            discount_clean = "".join(filter(str.isdigit, str(discount_raw)))
+            discount_val = Decimal(discount_clean) if discount_clean else Decimal('0')
+        except Exception:
+            discount_val = Decimal('0')
 
+        # دریافت اضافه‌بها
+        surcharge_raw = request.POST.get('surcharge', '0')
+        try:
+            surcharge_clean = "".join(filter(str.isdigit, str(surcharge_raw)))
+            surcharge_val = Decimal(surcharge_clean) if surcharge_clean else Decimal('0')
+        except Exception:
+            surcharge_val = Decimal('0')
+
+        # دریافت قیمت نهایی
         final_price_raw = request.POST.get('final_price', '')
         try:
-            final_price_val = Decimal(str(int(final_price_raw))) if final_price_raw else None
-        except (ValueError, TypeError):
+            final_price_clean = "".join(filter(str.isdigit, str(final_price_raw)))
+            final_price_val = Decimal(final_price_clean) if final_price_clean else None
+        except Exception:
             final_price_val = None
 
         p1 = request.POST.get('plate_1', '').strip()
@@ -275,7 +287,7 @@ def sale_create_view(request):
                         w_parts = [int(x) for x in warranty_end_date_str.split('/')]
                         warranty_end_date = jdatetime.date(w_parts[0], w_parts[1], w_parts[2]).togregorian()
                     except Exception:
-                        pass  # اگر کاربر تاریخ نامعتبری وارد کرد، نادیده می‌گیریم چون اختیاری است
+                        pass
 
                 battery = Battery.objects.get(id=battery_id, status='available')
                 installer_user = User.objects.get(id=installer_id) if installer_id else None
@@ -293,6 +305,7 @@ def sale_create_view(request):
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
                     discount=discount_val,
+                    surcharge=surcharge_val,
                     payment_method=payment_method_obj,
                     sale_date=sale_date,
                     **({"final_sale_price": final_price_val} if final_price_val is not None else {}),
@@ -323,7 +336,6 @@ def sale_create_view(request):
     }
     return render(request, 'sale_form.html', context)
 
-
 @login_required
 def installer_dashboard_view(request):
     my_sales = Sale.objects.filter(installer=request.user).order_by('-sale_date')
@@ -342,21 +354,33 @@ def installer_sale_create_view(request):
         warranty_serial = request.POST.get('warranty_serial')
         payment_method_id = request.POST.get('payment_method')
 
-        date_str = request.POST.get('sale_date')  # دریافت تاریخ فروش
-        warranty_end_date_str = request.POST.get('warranty_end_date')  # تاریخ پایان گارانتی
+        date_str = request.POST.get('sale_date')
+        warranty_end_date_str = request.POST.get('warranty_end_date')
 
         car_model = request.POST.get('car_model')
 
+        # دریافت تخفیف
         discount_raw = request.POST.get('discount', '0')
         try:
-            discount_val = int(discount_raw) if discount_raw else 0
-        except ValueError:
-            discount_val = 0
+            discount_clean = "".join(filter(str.isdigit, str(discount_raw)))
+            discount_val = Decimal(discount_clean) if discount_clean else Decimal('0')
+        except Exception:
+            discount_val = Decimal('0')
 
+        # دریافت اضافه‌بها
+        surcharge_raw = request.POST.get('surcharge', '0')
+        try:
+            surcharge_clean = "".join(filter(str.isdigit, str(surcharge_raw)))
+            surcharge_val = Decimal(surcharge_clean) if surcharge_clean else Decimal('0')
+        except Exception:
+            surcharge_val = Decimal('0')
+
+        # دریافت قیمت نهایی
         final_price_raw = request.POST.get('final_price', '')
         try:
-            final_price_val = Decimal(str(int(final_price_raw))) if final_price_raw else None
-        except (ValueError, TypeError):
+            final_price_clean = "".join(filter(str.isdigit, str(final_price_raw)))
+            final_price_val = Decimal(final_price_clean) if final_price_clean else None
+        except Exception:
             final_price_val = None
 
         p1 = request.POST.get('plate_1', '').strip()
@@ -372,7 +396,7 @@ def installer_sale_create_view(request):
             messages.error(request, 'لطفاً باتری و سریال گارانتی را الزماً وارد کنید.')
         else:
             try:
-                # تبدیل تاریخ فروش به میلادی
+                # تبدیل تاریخ فروش
                 if date_str:
                     try:
                         parts = [int(x) for x in date_str.split('/')]
@@ -407,6 +431,7 @@ def installer_sale_create_view(request):
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
                     discount=discount_val,
+                    surcharge=surcharge_val,
                     payment_method=payment_method_obj,
                     sale_date=sale_date,
                     **({"final_sale_price": final_price_val} if final_price_val is not None else {}),
