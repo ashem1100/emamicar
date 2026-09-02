@@ -350,6 +350,12 @@ def installer_sale_create_view(request):
         except ValueError:
             discount_val = 0
 
+        final_price_raw = request.POST.get('final_price', '')
+        try:
+            final_price_val = Decimal(str(int(final_price_raw))) if final_price_raw else None
+        except (ValueError, TypeError):
+            final_price_val = None
+
         p1 = request.POST.get('plate_1', '').strip()
         p2 = request.POST.get('plate_2', '').strip()
         p3 = request.POST.get('plate_3', '').strip()
@@ -383,12 +389,13 @@ def installer_sale_create_view(request):
                     car_plate=car_plate,
                     car_model=car_model,
                     warranty_serial=warranty_serial,
-                    warranty_end_date=warranty_end_date,  # <--- ذخیره تاریخ پایان گارانتی
+                    warranty_end_date=warranty_end_date,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
                     installer=installer_user,
                     discount=discount_val,
                     payment_method=payment_method_obj,
+                    **({"final_sale_price": final_price_val} if final_price_val is not None else {}),
                 )
 
                 messages.success(request, 'فاکتور فروش با موفقیت در پنل شما ثبت شد.')

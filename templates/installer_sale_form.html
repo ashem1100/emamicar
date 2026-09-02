@@ -136,10 +136,60 @@
                 </div>
             </div>
 
-            <div class="live-price-box p-3 p-md-4 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 text-center text-md-start">
-                <span class="text-info fw-bold"><i class="fa-solid fa-calculator me-2"></i>مبلغ نهایی فاکتور:</span>
-                <h2 class="text-white fw-bold mb-0" id="livePriceDisplay">0 <small class="fs-6 text-secondary fw-normal">تومان</small></h2>
-            </div>
+            <div class="live-price-box p-3 p-md-4 mb-4">
+    <p class="text-info fw-bold mb-3 small"><i class="fa-solid fa-calculator me-2"></i>محاسبه قیمت</p>
+
+    <div class="row g-2 text-center mb-3">
+        <div class="col-4">
+            <div class="text-secondary small mb-1">بدون داغی</div>
+            <div class="text-white fw-bold" id="priceWithoutDaghi">0</div>
+            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
+        </div>
+        <div class="col-4">
+            <div class="text-secondary small mb-1">کسر داغی</div>
+            <div class="text-warning fw-bold" id="daghiDiscountSuggested">0</div>
+            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
+        </div>
+        <div class="col-4">
+            <div class="text-secondary small mb-1">قیمت نهایی</div>
+            <div class="text-success fw-bold" id="suggestedPrice">0</div>
+            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
+        </div>
+    </div>
+
+    <hr style="border-color: rgba(255,255,255,0.1);">
+
+    <div class="row g-3">
+        <div class="col-12 col-md-6">
+            <label class="form-label text-white fw-bold small">مبلغ داغی دریافتی (تومان):</label>
+            <input
+                type="number"
+                name="daghi_received_price"
+                id="daghiReceivedInput"
+                class="form-control form-dark text-center fw-bold"
+                placeholder="مبلغ داغی دریافتی"
+                step="1000"
+                dir="ltr"
+            >
+            <div class="text-secondary mt-1" style="font-size: 0.75rem;">مقدار پیشنهادی را می‌توانید ویرایش کنید</div>
+        </div>
+        <div class="col-12 col-md-6">
+            <label class="form-label text-white fw-bold small">قیمت نهایی دریافتی (*) (تومان):</label>
+            <input
+                type="number"
+                name="final_price"
+                id="finalPriceInput"
+                class="form-control form-dark text-center fw-bold"
+                placeholder="قیمت نهایی فروش"
+                step="1000"
+                dir="ltr"
+                required
+            >
+            <div class="text-secondary mt-1" style="font-size: 0.75rem;">با تغییر داغی به‌روز می‌شود</div>
+        </div>
+    </div>
+</div>
+
 
             <button type="submit" class="btn btn-info w-100 py-3 fw-bold text-dark shadow-lg rounded-3 fs-5">
                 <i class="fa-solid fa-check-circle me-2"></i> ثبت قطعی فاکتور
@@ -154,48 +204,84 @@
     const daghiRate = parseInt("{{ settings.daghi_price_per_amper|default:'40000' }}");
     const profitPercent = parseInt("{{ settings.default_profit_percent|default:'20' }}");
 
+    let computedPriceWithoutDaghi = 0;
+
     function toggleDaghiFields(checked) {
         document.getElementById('daghiFields').style.display = checked ? 'block' : 'none';
+        if (!checked) {
+            const daghiInput = document.getElementById('daghiReceivedInput');
+            daghiInput.value = '';
+            daghiInput.dataset.userModified = '';
+        }
+        calculateLivePrice();
     }
 
     function formatCurrency(number) {
-        return new Intl.NumberFormat('fa-IR').format(number);
+        return new Intl.NumberFormat('fa-IR').format(Math.round(number));
     }
 
     function calculateLivePrice() {
         const batterySelect = document.getElementById('batterySelect');
         const selectedOption = batterySelect.options[batterySelect.selectedIndex];
 
-        let finalPrice = 0;
+        computedPriceWithoutDaghi = 0;
+        let computedDaghiDiscount = 0;
 
         if (selectedOption && selectedOption.value) {
             const batteryAmperage = parseInt(selectedOption.getAttribute('data-amperage'));
             const brandRate = parseInt(selectedOption.getAttribute('data-brand-rate'));
-
             const basePrice = batteryAmperage * brandRate;
             const profitFactor = 1 + (profitPercent / 100);
-            const priceWithoutDaghi = basePrice * profitFactor;
+            computedPriceWithoutDaghi = basePrice * profitFactor;
 
-            let daghiDiscount = 0;
             const hasDaghi = document.getElementById('daghiCheck').checked;
-
             if (hasDaghi) {
-                const daghiAmperageSelect = document.getElementById('daghiAmperageSelect').value;
-                const actualDaghiAmper = daghiAmperageSelect ? parseInt(daghiAmperageSelect) : batteryAmperage;
-                daghiDiscount = actualDaghiAmper * daghiRate;
+                const daghiAmperageVal = document.getElementById('daghiAmperageSelect').value;
+                const actualDaghiAmper = daghiAmperageVal ? parseInt(daghiAmperageVal) : batteryAmperage;
+                computedDaghiDiscount = actualDaghiAmper * daghiRate;
             }
-
-            const discountInput = document.getElementById('discountInput').value;
-            const manualDiscount = discountInput ? parseInt(discountInput) : 0;
-
-            finalPrice = priceWithoutDaghi - daghiDiscount - manualDiscount;
-            if (finalPrice < 0) finalPrice = 0;
         }
 
-        document.getElementById('livePriceDisplay').innerHTML = `${formatCurrency(finalPrice)} <small class="fs-6 text-secondary fw-normal">تومان</small>`;
+        const discountVal = parseInt(document.getElementById('discountInput').value) || 0;
+        const suggestedFinal = Math.max(0, computedPriceWithoutDaghi - computedDaghiDiscount - discountVal);
+
+        document.getElementById('priceWithoutDaghi').textContent = formatCurrency(computedPriceWithoutDaghi);
+        document.getElementById('daghiDiscountSuggested').textContent = formatCurrency(computedDaghiDiscount);
+        document.getElementById('suggestedPrice').textContent = formatCurrency(suggestedFinal);
+
+        const daghiInput = document.getElementById('daghiReceivedInput');
+        const finalInput = document.getElementById('finalPriceInput');
+
+        if (!daghiInput.dataset.userModified) {
+            daghiInput.value = Math.round(computedDaghiDiscount) || '';
+        }
+        if (!finalInput.dataset.userModified) {
+            finalInput.value = Math.round(suggestedFinal) || '';
+        }
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function syncFromDaghi() {
+        const daghiInput = document.getElementById('daghiReceivedInput');
+        const finalInput = document.getElementById('finalPriceInput');
+        const discountVal = parseInt(document.getElementById('discountInput').value) || 0;
+
+        daghiInput.dataset.userModified = 'true';
+
+        const daghiVal = parseFloat(daghiInput.value) || 0;
+        const newFinal = Math.max(0, computedPriceWithoutDaghi - daghiVal - discountVal);
+
+        if (!finalInput.dataset.userModified) {
+            finalInput.value = Math.round(newFinal);
+        }
+    }
+
+    function syncFromFinal() {
+        document.getElementById('finalPriceInput').dataset.userModified = 'true';
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById('daghiReceivedInput').addEventListener('input', syncFromDaghi);
+        document.getElementById('finalPriceInput').addEventListener('input', syncFromFinal);
         calculateLivePrice();
     });
 </script>
