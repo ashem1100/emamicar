@@ -7,6 +7,8 @@ urlpatterns = [
     path('analytics/', analytics_view, name='battery_analytics'),
     path('sales/', sale_list_view, name='sale_list'),
     path('sales/<int:pk>/', sale_detail_view, name='sale_detail'),
+    path('sales/quick-add-battery/', quick_add_battery_view, name='quick_add_battery'),
+
     path('sales/add/', sale_create_view, name='sale_create'),
     path('panel/', installer_dashboard_view, name='installer_dashboard'),
     path('panel/sale/', installer_sale_list_view, name='installer_sale_list'),

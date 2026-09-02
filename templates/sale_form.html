@@ -55,7 +55,44 @@
                         </option>
                     {% endfor %}
                 </select>
+
             </div>
+            <button type="button" id="btn-quick-add-battery" class="btn btn-outline-secondary btn-sm ms-2">
+                + باتری جدید
+            </button>
+            <!-- مودال -->
+<div class="modal fade" id="quickAddBatteryModal" tabindex="-1" aria-labelledby="quickAddBatteryLabel" aria-modal="true" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="quickAddBatteryLabel">افزودن سریع باتری</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+      </div>
+      <div class="modal-body">
+        <div id="quick-battery-error" class="alert alert-danger d-none"></div>
+        <div class="mb-3">
+          <label for="qb-brand" class="form-label">برند <span class="text-danger">*</span></label>
+          <select id="qb-brand" class="form-select">
+            <option value="">انتخاب کنید...</option>
+            {% for brand in brands %}
+              <option value="{{ brand.pk }}">{{ brand.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="qb-amperage" class="form-label">آمپر <span class="text-danger">*</span></label>
+          <input type="text" id="qb-amperage" class="form-control" placeholder="مثال: 60">
+
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+        <button type="button" id="btn-save-battery" class="btn btn-primary">ذخیره و افزودن</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
             <!-- بخش ۲: مشتری و خودرو -->
             <div class="section-title fw-bold"><i class="fa-solid fa-user-tag me-2 text-info"></i>مشخصات مشتری و خودرو</div>
@@ -313,5 +350,57 @@
         document.getElementById('finalPriceInput').addEventListener('input', syncFromFinal);
         calculateLivePrice();
     });
+
+  const modal         = new bootstrap.Modal(document.getElementById('quickAddBatteryModal'));
+  const errBox        = document.getElementById('quick-battery-error');
+  const saveBtn       = document.getElementById('btn-save-battery');
+  const batterySelect = document.getElementById('batterySelect');
+
+
+  document.getElementById('btn-quick-add-battery').addEventListener('click', () => {
+    errBox.classList.add('d-none');
+    document.getElementById('qb-brand').value   = '';
+    document.getElementById('qb-amperage').value = '';
+    modal.show();
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    errBox.classList.add('d-none');
+    saveBtn.disabled = true;
+
+    const payload = {
+      brand_id:       document.getElementById('qb-brand').value,
+      amperage:       document.getElementById('qb-amperage').value.trim(),
+    };
+
+    try {
+      const resp = await fetch("{% url 'quick_add_battery' %}", {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken':  '{{ csrf_token }}',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await resp.json();
+
+      if (data.success) {
+        const opt = new Option(data.battery.label, data.battery.id, true, true);
+        batterySelect.appendChild(opt);
+        batterySelect.dispatchEvent(new Event('change')); // برای Select2 و Choices.js
+        modal.hide();
+      } else {
+        errBox.textContent = data.error;
+        errBox.classList.remove('d-none');
+      }
+    } catch {
+      errBox.textContent = 'خطا در ارتباط با سرور.';
+      errBox.classList.remove('d-none');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
 </script>
 {% endblock %}

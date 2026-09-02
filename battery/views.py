@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 from collections import defaultdict
 from django.db.models.functions import Coalesce
 from decimal import Decimal
+from django.views.decorators.http import require_POST
 
 
 @staff_member_required
@@ -318,6 +319,7 @@ def sale_create_view(request):
         'payment_methods': payment_methods,
         'settings': settings,
         'today_jalali': today_jalali,
+        'brands': Brand.objects.all(),
     }
     return render(request, 'sale_form.html', context)
 
@@ -580,3 +582,57 @@ def installer_wallet_view(request):
         'total_payout': payout
     }
     return render(request, 'installer_wallet.html', context)
+
+
+import uuid
+
+@staff_member_required
+@require_POST
+def quick_add_battery_view(request):
+    try:
+        data = json.loads(request.body)
+
+        brand_id = data.get('brand_id')
+        amperage = data.get('amperage', '').strip()
+
+        if not brand_id or not amperage:
+            return JsonResponse(
+                {'success': False, 'error': 'برند و آمپر الزامی هستند.'},
+                status=400
+            )
+
+        brand = Brand.objects.get(pk=brand_id)
+
+        # سریال خودکار: QUICK-{BrandInitial}{amperage}-{uuid کوتاه}
+        short_uuid = uuid.uuid4().hex[:6].upper()
+        brand_code = brand.name[0].upper()
+        serial_code = f"QUICK-{brand_code}{amperage}-{short_uuid}"
+
+        # ضمانت یکتایی (در صورت تصادف بسیار نادر)
+        while Battery.objects.filter(serial_code=serial_code).exists():
+            short_uuid = uuid.uuid4().hex[:6].upper()
+            serial_code = f"QUICK-{brand_code}{amperage}-{short_uuid}"
+
+        battery = Battery.objects.create(
+            brand=brand,
+            amperage=amperage,
+            purchase_price=None,
+            serial_code=serial_code,
+            status='available',
+        )
+
+        # آمپر عددی و نرخ برند برای محاسبه JS
+        return JsonResponse({
+            'success': True,
+            'battery': {
+                'id': battery.pk,
+                'label': str(battery),
+                'numeric_amperage': battery.numeric_amperage,
+                'brand_rate': str(brand.selling_price_per_amper),
+            }
+        })
+
+    except Brand.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'برند پیدا نشد.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
