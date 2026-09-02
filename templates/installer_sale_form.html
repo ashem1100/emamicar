@@ -9,6 +9,15 @@
 
     .section-title { font-size: 0.9rem; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 16px; margin-top: 24px; }
 
+    @media (min-width: 768px) {
+        .border-start-md {
+            border-right: 1px solid rgba(255, 255, 255, 0.15) !important; /* برای چیدمان راست‌به‌چپ RTL */
+        }
+        .border-top-md-0 {
+            border-top: none !important;
+        }
+    }
+
     .plate-box { display: flex; align-items: stretch; background: #fff; color: #000; border-radius: 8px; border: 2px solid #000; overflow: hidden; width: 100%; max-width: 320px; margin: 0 auto 0 0; }
     .plate-box input, .plate-box select { border: none; text-align: center; font-weight: bold; font-size: 1.1rem; background: transparent; padding: 6px 2px; }
     .plate-box input:focus { outline: none; background: rgba(56, 189, 248, 0.1); }
@@ -38,11 +47,12 @@
         <form method="POST">
             {% csrf_token %}
 
+            <!-- بخش ۱: باتری (بدون مودال افزودن سریع) -->
             <div class="section-title fw-bold"><i class="fa-solid fa-car-battery me-2 text-info"></i>باتری فروخته شده</div>
             <div class="mb-4">
                 <label class="form-label text-secondary small">انتخاب باتری از انبار (*):</label>
                 <select name="battery" id="batterySelect" class="form-select form-dark form-select-lg fs-6" required onchange="calculateLivePrice()">
-                    <option value="">-- انتخاب باتری --</option>
+                    <option value="">-- انتخاب باتری موجود --</option>
                     {% for b in available_batteries %}
                         <option value="{{ b.id }}" data-amperage="{{ b.numeric_amperage }}" data-brand-rate="{{ b.brand.selling_price_per_amper }}">
                             {{ b.serial_code }} | {{ b.brand.name }} - {{ b.amperage }} آمپر
@@ -51,6 +61,7 @@
                 </select>
             </div>
 
+            <!-- بخش ۲: مشتری و خودرو -->
             <div class="section-title fw-bold"><i class="fa-solid fa-user-tag me-2 text-info"></i>مشتری و خودرو</div>
             <div class="row g-3 mb-3">
                 <div class="col-12 col-md-4">
@@ -63,7 +74,7 @@
                 </div>
                 <div class="col-6 col-md-4">
                     <label class="form-label text-secondary small">مدل ماشین (اختیاری):</label>
-                    <input type="text" name="car_model" class="form-control form-dark" placeholder="مثلا: پراید 111">
+                    <input type="text" name="car_model" class="form-control form-dark" placeholder="مثلا: پژو 206">
                 </div>
             </div>
 
@@ -74,7 +85,8 @@
                     <select name="plate_2" style="width: 25%;" required>
                         <option value="الف">الف</option><option value="ب">ب</option><option value="ج">ج</option><option value="د">د</option>
                         <option value="س">س</option><option value="ص">ص</option><option value="ط">ط</option><option value="ق">ق</option>
-                        <option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option><option value="و">و</option><option value="هـ">هـ</option><option value="ی">ی</option>
+                        <option value="ل">ل</option><option value="م">م</option><option value="ن">ن</option><option value="و">و</option>
+                        <option value="هـ">هـ</option><option value="ی">ی</option>
                     </select>
                     <input type="tel" name="plate_3" maxlength="3" placeholder="345" style="width: 25%;" required>
                     <div class="d-flex align-items-center border-start border-2 border-dark bg-light px-1" style="width: 30%;">
@@ -84,6 +96,7 @@
                 </div>
             </div>
 
+            <!-- بخش ۳: گارانتی و تسویه -->
             <div class="section-title fw-bold"><i class="fa-solid fa-shield-halved me-2 text-info"></i>گارانتی و تسویه</div>
             <div class="row g-3 mb-3">
                 <div class="col-12 col-md-6">
@@ -100,11 +113,11 @@
             </div>
 
             <div class="row g-3 mb-4">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6">
                     <label class="form-label text-info small">نصب توسط:</label>
                     <input type="text" class="form-control bg-secondary text-white border-0" value="{{ request.user.get_full_name|default:request.user.username }}" disabled readonly>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6">
                     <label class="form-label text-secondary small">روش پرداخت (*):</label>
                     <select name="payment_method" class="form-select form-dark" required>
                         <option value="" disabled selected>-- انتخاب کنید --</option>
@@ -113,13 +126,9 @@
                         {% endfor %}
                     </select>
                 </div>
-                <!-- تغییر کلیدی: step="1" و حذف min -->
-                <div class="col-12 col-md-4">
-                    <label class="form-label text-warning small fw-bold">تخفیف / اضافه بها (تومان):</label>
-                    <input type="number" name="discount" id="discountInput" class="form-control form-dark" placeholder="تخفیف (+) | افزایش (-)" step="1" dir="ltr" oninput="calculateLivePrice()">
-                </div>
             </div>
 
+            <!-- وضعیت داغی -->
             <div class="daghi-container mb-4">
                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" name="has_daghi" id="daghiCheck" checked onchange="toggleDaghiFields(this.checked); calculateLivePrice();">
@@ -136,60 +145,106 @@
                 </div>
             </div>
 
+            <!-- باکس اطلاعات قیمت‌گذاری و سود زنده -->
             <div class="live-price-box p-3 p-md-4 mb-4">
-    <p class="text-info fw-bold mb-3 small"><i class="fa-solid fa-calculator me-2"></i>محاسبه قیمت</p>
+                <!-- هدر: عنوان و درصد سود -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <p class="text-info fw-bold mb-0 small">
+                        <i class="fa-solid fa-calculator me-2"></i>محاسبه قیمت پیشنهادی
+                    </p>
 
-    <div class="row g-2 text-center mb-3">
-        <div class="col-4">
-            <div class="text-secondary small mb-1">بدون داغی</div>
-            <div class="text-white fw-bold" id="priceWithoutDaghi">0</div>
-            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
-        </div>
-        <div class="col-4">
-            <div class="text-secondary small mb-1">کسر داغی</div>
-            <div class="text-warning fw-bold" id="daghiDiscountSuggested">0</div>
-            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
-        </div>
-        <div class="col-4">
-            <div class="text-secondary small mb-1">قیمت نهایی</div>
-            <div class="text-success fw-bold" id="suggestedPrice">0</div>
-            <div class="text-secondary" style="font-size: 0.7rem;">تومان</div>
-        </div>
-    </div>
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        <span class="text-secondary small">درصد سود:</span>
+                        <div class="input-group input-group-sm" style="width: 95px; direction: ltr;">
+                            <input
+                                type="text"
+                                inputmode="numeric"
+                                id="profitPercentInput"
+                                class="form-control form-dark text-center fw-bold px-1"
+                                value="{{ settings.default_profit_percent|default:'20' }}"
+                                oninput="calculateLivePrice()"
+                            >
+                            <span class="input-group-text bg-dark border-secondary text-secondary">%</span>
+                        </div>
+                    </div>
+                </div>
 
-    <hr style="border-color: rgba(255,255,255,0.1);">
+                <!-- باکس نمایش قیمت‌ها (در موبایل ۲ در ۲، در دسکتاپ ۴ ستونه) -->
+                <div class="row g-2 text-center mb-3 py-2 bg-dark bg-opacity-50 rounded-3">
+                    <div class="col-6 col-md-3 py-1">
+                        <div class="text-secondary small mb-1" style="font-size: 0.75rem;">قیمت خرید (پایه)</div>
+                        <div class="text-white fw-bold fs-6" id="baseRawPrice">0</div>
+                        <div class="text-secondary" style="font-size: 0.65rem;">تومان</div>
+                    </div>
 
-    <div class="row g-3">
-        <div class="col-12 col-md-6">
-            <label class="form-label text-white fw-bold small">مبلغ داغی دریافتی (تومان):</label>
-            <input
-                type="number"
-                name="daghi_received_price"
-                id="daghiReceivedInput"
-                class="form-control form-dark text-center fw-bold"
-                placeholder="مبلغ داغی دریافتی"
-                step="1000"
-                dir="ltr"
-            >
-            <div class="text-secondary mt-1" style="font-size: 0.75rem;">مقدار پیشنهادی را می‌توانید ویرایش کنید</div>
-        </div>
-        <div class="col-12 col-md-6">
-            <label class="form-label text-white fw-bold small">قیمت نهایی دریافتی (*) (تومان):</label>
-            <input
-                type="number"
-                name="final_price"
-                id="finalPriceInput"
-                class="form-control form-dark text-center fw-bold"
-                placeholder="قیمت نهایی فروش"
-                step="1000"
-                dir="ltr"
-                required
-            >
-            <div class="text-secondary mt-1" style="font-size: 0.75rem;">با تغییر داغی به‌روز می‌شود</div>
-        </div>
-    </div>
-</div>
+                    <div class="col-6 col-md-3 py-1 border-start-md border-secondary border-opacity-25">
+                        <div class="text-secondary small mb-1" style="font-size: 0.75rem;">مبلغ سود (<span id="profitPercentLabel">۲۰</span>٪)</div>
+                        <div class="text-info fw-bold fs-6" id="profitAmountDisplay">0</div>
+                        <div class="text-secondary" style="font-size: 0.65rem;">تومان</div>
+                    </div>
 
+                    <div class="col-6 col-md-3 py-1 border-top border-top-md-0 border-secondary border-opacity-25">
+                        <div class="text-secondary small mb-1" style="font-size: 0.75rem;">ارزش داغی</div>
+                        <div class="text-warning fw-bold fs-6" id="daghiDiscountSuggested">0</div>
+                        <div class="text-secondary" style="font-size: 0.65rem;">تومان</div>
+                    </div>
+
+                    <div class="col-6 col-md-3 py-1 border-top border-top-md-0 border-start-md border-secondary border-opacity-25">
+                        <div class="text-secondary small mb-1" style="font-size: 0.75rem;">پیشنهاد سیستم</div>
+                        <div class="text-success fw-bold fs-6" id="suggestedPrice">0</div>
+                        <div class="text-secondary" style="font-size: 0.65rem;">تومان</div>
+                    </div>
+                </div>
+
+                <hr style="border-color: rgba(255,255,255,0.1);">
+
+                <!-- فیلدهای ورودی -->
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-warning small fw-bold">تخفیف / اضافه بها (تومان):</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="discount"
+                            id="discountInput"
+                            class="form-control form-dark text-center"
+                            placeholder="تخفیف (+) | افزایش (-)"
+                            dir="ltr"
+                            oninput="calculateLivePrice()"
+                        >
+                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">مثبت برای تخفیف، منفی برای گرانی</div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-white fw-bold small">مبلغ داغی دریافتی (تومان):</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="daghi_received_price"
+                            id="daghiReceivedInput"
+                            class="form-control form-dark text-center fw-bold"
+                            placeholder="مبلغ داغی دریافتی"
+                            dir="ltr"
+                        >
+                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">قابل ویرایش دستی</div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-success fw-bold small">قیمت نهایی فاکتور (*) (تومان):</label>
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            name="final_price"
+                            id="finalPriceInput"
+                            class="form-control form-dark text-center fw-bold border-success"
+                            placeholder="مبلغ نهایی دریافتی"
+                            dir="ltr"
+                            required
+                        >
+                        <div class="text-secondary mt-1" style="font-size: 0.7rem;">مبلغی که از مشتری دریافت می‌شود</div>
+                    </div>
+                </div>
+            </div>
 
             <button type="submit" class="btn btn-info w-100 py-3 fw-bold text-dark shadow-lg rounded-3 fs-5">
                 <i class="fa-solid fa-check-circle me-2"></i> ثبت قطعی فاکتور
@@ -202,16 +257,16 @@
 {% block extra_js %}
 <script>
     const daghiRate = parseInt("{{ settings.daghi_price_per_amper|default:'40000' }}");
-    const profitPercent = parseInt("{{ settings.default_profit_percent|default:'20' }}");
 
     let computedPriceWithoutDaghi = 0;
+    let computedDaghiDiscount = 0;
 
     function toggleDaghiFields(checked) {
         document.getElementById('daghiFields').style.display = checked ? 'block' : 'none';
         if (!checked) {
             const daghiInput = document.getElementById('daghiReceivedInput');
             daghiInput.value = '';
-            daghiInput.dataset.userModified = '';
+            delete daghiInput.dataset.userModified;
         }
         calculateLivePrice();
     }
@@ -220,58 +275,82 @@
         return new Intl.NumberFormat('fa-IR').format(Math.round(number));
     }
 
+    function parseInputValue(val) {
+        if (!val) return 0;
+        const cleanStr = String(val)
+            .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+            .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+            .replace(/,/g, '')
+            .trim();
+        const parsed = parseFloat(cleanStr);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
     function calculateLivePrice() {
         const batterySelect = document.getElementById('batterySelect');
         const selectedOption = batterySelect.options[batterySelect.selectedIndex];
 
+        // خواندن مقادیر عددی با نرمال‌سازی فارسی/انگلیسی
+        const discountVal = parseInputValue(document.getElementById('discountInput').value);
+        const liveProfitPercent = parseInputValue(document.getElementById('profitPercentInput').value);
+
+        let rawPrice = 0;
+        let profitAmount = 0;
         computedPriceWithoutDaghi = 0;
-        let computedDaghiDiscount = 0;
+        computedDaghiDiscount = 0;
 
         if (selectedOption && selectedOption.value) {
-            const batteryAmperage = parseInt(selectedOption.getAttribute('data-amperage'));
-            const brandRate = parseInt(selectedOption.getAttribute('data-brand-rate'));
-            const basePrice = batteryAmperage * brandRate;
-            const profitFactor = 1 + (profitPercent / 100);
-            computedPriceWithoutDaghi = basePrice * profitFactor;
+            const batteryAmperage = parseInt(selectedOption.getAttribute('data-amperage')) || 0;
+            const brandRate = parseInt(selectedOption.getAttribute('data-brand-rate')) || 0;
+
+            rawPrice = batteryAmperage * brandRate;
+            profitAmount = rawPrice * (liveProfitPercent / 100);
+
+            // قیمت پایه باتری با سود
+            computedPriceWithoutDaghi = rawPrice + profitAmount;
 
             const hasDaghi = document.getElementById('daghiCheck').checked;
             if (hasDaghi) {
-                const daghiAmperageVal = document.getElementById('daghiAmperageSelect').value;
-                const actualDaghiAmper = daghiAmperageVal ? parseInt(daghiAmperageVal) : batteryAmperage;
+                const daghiAmperageSelect = document.getElementById('daghiAmperageSelect').value;
+                const actualDaghiAmper = daghiAmperageSelect ? parseInt(daghiAmperageSelect) : batteryAmperage;
                 computedDaghiDiscount = actualDaghiAmper * daghiRate;
             }
         }
 
-        const discountVal = parseInt(document.getElementById('discountInput').value) || 0;
+        // قیمت پیشنهادی نهایی = قیمت با احتساب سود - ارزش داغی - تخفیف
         const suggestedFinal = Math.max(0, computedPriceWithoutDaghi - computedDaghiDiscount - discountVal);
 
-        document.getElementById('priceWithoutDaghi').textContent = formatCurrency(computedPriceWithoutDaghi);
+        // به‌روزرسانی نمایشگرهای وضعیت
+        document.getElementById('baseRawPrice').textContent = formatCurrency(rawPrice);
+        document.getElementById('profitPercentLabel').textContent = new Intl.NumberFormat('fa-IR').format(liveProfitPercent);
+        document.getElementById('profitAmountDisplay').textContent = formatCurrency(profitAmount);
         document.getElementById('daghiDiscountSuggested').textContent = formatCurrency(computedDaghiDiscount);
         document.getElementById('suggestedPrice').textContent = formatCurrency(suggestedFinal);
 
+        // پر کردن خودکار اینپوت‌ها در صورتی که کاربر دستی ویرایش نکرده باشد
         const daghiInput = document.getElementById('daghiReceivedInput');
         const finalInput = document.getElementById('finalPriceInput');
 
         if (!daghiInput.dataset.userModified) {
-            daghiInput.value = Math.round(computedDaghiDiscount) || '';
+            daghiInput.value = computedDaghiDiscount ? Math.round(computedDaghiDiscount) : '';
         }
         if (!finalInput.dataset.userModified) {
-            finalInput.value = Math.round(suggestedFinal) || '';
+            finalInput.value = suggestedFinal ? Math.round(suggestedFinal) : '';
         }
     }
 
     function syncFromDaghi() {
         const daghiInput = document.getElementById('daghiReceivedInput');
         const finalInput = document.getElementById('finalPriceInput');
-        const discountVal = parseInt(document.getElementById('discountInput').value) || 0;
+        const discountVal = parseInputValue(document.getElementById('discountInput').value);
 
         daghiInput.dataset.userModified = 'true';
+        const daghiVal = parseInputValue(daghiInput.value);
 
-        const daghiVal = parseFloat(daghiInput.value) || 0;
         const newFinal = Math.max(0, computedPriceWithoutDaghi - daghiVal - discountVal);
 
         if (!finalInput.dataset.userModified) {
-            finalInput.value = Math.round(newFinal);
+            finalInput.value = Math.round(newFinal) || '';
         }
     }
 
