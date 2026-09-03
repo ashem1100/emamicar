@@ -207,9 +207,13 @@ def sale_list_view(request):
     return render(request, 'sale_list.html', context)
 
 
-@staff_member_required
+@login_required
 def sale_detail_view(request, pk):
-    sale = get_object_or_404(Sale, pk=pk)
+    # ادمین به همه فاکتورها دسترسی دارد، نصاب فقط به فاکتورهای ثبت‌شده توسط خودش
+    if request.user.is_staff:
+        sale = get_object_or_404(Sale, pk=pk)
+    else:
+        sale = get_object_or_404(Sale, pk=pk, installer=request.user)
     return render(request, 'sale_detail.html', {'sale': sale})
 
 
@@ -243,6 +247,14 @@ def sale_create_view(request):
             surcharge_val = Decimal(surcharge_clean) if surcharge_clean else Decimal('0')
         except Exception:
             surcharge_val = Decimal('0')
+
+        # دریافت مبلغ دستی داغی
+        daghi_price_raw = request.POST.get('daghi_received_price', '0')
+        try:
+            daghi_price_clean = "".join(filter(str.isdigit, str(daghi_price_raw)))
+            daghi_received_val = Decimal(daghi_price_clean) if daghi_price_clean else Decimal('0')
+        except Exception:
+            daghi_received_val = Decimal('0')
 
         # دریافت قیمت نهایی
         final_price_raw = request.POST.get('final_price', '')
@@ -309,6 +321,7 @@ def sale_create_view(request):
                     warranty_end_date=warranty_end_date,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
+                    daghi_received_price=daghi_received_val if has_daghi else Decimal('0'),
                     installer=installer_user,
                     discount=discount_val,
                     surcharge=surcharge_val,
@@ -384,6 +397,14 @@ def installer_sale_create_view(request):
         except Exception:
             surcharge_val = Decimal('0')
 
+        # دریافت مبلغ دستی داغی
+        daghi_price_raw = request.POST.get('daghi_received_price', '0')
+        try:
+            daghi_price_clean = "".join(filter(str.isdigit, str(daghi_price_raw)))
+            daghi_received_val = Decimal(daghi_price_clean) if daghi_price_clean else Decimal('0')
+        except Exception:
+            daghi_received_val = Decimal('0')
+
         # دریافت قیمت نهایی
         final_price_raw = request.POST.get('final_price', '')
         try:
@@ -445,6 +466,7 @@ def installer_sale_create_view(request):
                     warranty_end_date=warranty_end_date,
                     has_daghi=has_daghi,
                     daghi_amperage=daghi_amperage,
+                    daghi_received_price=daghi_received_val if has_daghi else Decimal('0'),
                     installer=installer_user,
                     discount=discount_val,
                     surcharge=surcharge_val,

@@ -257,6 +257,17 @@ class Sale(models.Model):
         help_text='اگر خالی بماند، برابر با آمپر باتری نو محاسبه می‌شود.',
     )
 
+    # فیلد ذخیره مبلغ داغی (دستی از فرم یا پیشنهادی سیستم)
+    daghi_received_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=Decimal('0'),
+        blank=True,
+        null=True,
+        verbose_name='مبلغ داغی دریافتی (تومان)',
+        help_text='مبلغ داغی که در فرم ثبت یا ویرایش شده است',
+    )
+
     installer = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -337,13 +348,30 @@ class Sale(models.Model):
         return self.battery.numeric_amperage
 
     @property
+    def effective_daghi_price(self):
+        """مبلغ داغی معتبر: اگر داغی دارد، اولویت با مقدار دستی daghi_received_price است"""
+        if not self.has_daghi:
+            return Decimal('0')
+        if self.daghi_received_price and self.daghi_received_price > 0:
+            return Decimal(str(self.daghi_received_price))
+        return Decimal(str(self.daghi_discount or 0))
+
+    @property
+    def calculated_base_price(self):
+        """قیمت مبنای باتری نو دقیقاً متناسب با اقلام این فاکتور"""
+        discount_val = self.discount or Decimal('0')
+        surcharge_val = self.surcharge or Decimal('0')
+        final_val = self.final_sale_price or Decimal('0')
+        return final_val + self.effective_daghi_price + discount_val - surcharge_val
+
+    @property
     def profit(self):
         cost = (
             Decimal(str(self.battery.purchase_price))
             if self.battery.purchase_price
             else Decimal('0')
         )
-        return self.sale_price_without_daghi - cost
+        return self.calculated_base_price - cost
 
     def save(self, *args, **kwargs):
         settings = SystemSetting.objects.last()
@@ -358,26 +386,41 @@ class Sale(models.Model):
             else Decimal('20')
         )
 
+        # اگر داغی ندارد، مبالغ داغی حتماً صفر شوند
+        if not self.has_daghi:
+            self.daghi_received_price = Decimal('0')
+            self.daghi_discount = Decimal('0')
+        else:
+            # اگر مقدار دستی داغی وارد شده، همان را در daghi_discount هم می‌گذاریم
+            if self.daghi_received_price and self.daghi_received_price > 0:
+                self.daghi_discount = self.daghi_received_price
+            elif not self.daghi_discount:
+                actual_daghi_amper = Decimal(str(self.numeric_daghi_amperage))
+                self.daghi_discount = actual_daghi_amper * daghi_rate
+                self.daghi_received_price = self.daghi_discount
+
+        # قیمت پایه تئوری اولیه
         current_brand_rate = Decimal(str(self.battery.brand.selling_price_per_amper))
         new_battery_amperage = Decimal(str(self.battery.numeric_amperage))
-        base_price = new_battery_amperage * current_brand_rate
-
+        base_raw_price = new_battery_amperage * current_brand_rate
         profit_factor = Decimal('1') + (profit_percent / Decimal('100'))
-        self.sale_price_without_daghi = base_price * profit_factor
+        system_suggested_base = base_raw_price * profit_factor
 
-        if self.has_daghi:
-            actual_daghi_amper = Decimal(str(self.numeric_daghi_amperage))
-            self.daghi_discount = actual_daghi_amper * daghi_rate
+        manual_discount = self.discount or Decimal('0')
+        manual_surcharge = self.surcharge or Decimal('0')
+
+        # اگر قیمت نهایی از قبل در فرم مشخص شده، قیمت بدون داغی را هماهنگ با آن تنظیم می‌کنیم
+        if self.final_sale_price and self.final_sale_price > 0:
+            effective_daghi = self.daghi_received_price or self.daghi_discount or Decimal('0')
+            self.sale_price_without_daghi = (
+                self.final_sale_price + effective_daghi + manual_discount - manual_surcharge
+            )
         else:
-            self.daghi_discount = Decimal('0')
-
-        # در صورتی که قیمت نهایی از فرم ارسال نشده باشد، فرمول تفکیک‌شده اعمال می‌شود:
-        if not self.final_sale_price:
-            manual_discount = self.discount or Decimal('0')
-            manual_surcharge = self.surcharge or Decimal('0')
+            self.sale_price_without_daghi = system_suggested_base
+            effective_daghi = self.daghi_received_price or self.daghi_discount or Decimal('0')
             calculated_final = (
                 self.sale_price_without_daghi
-                - self.daghi_discount
+                - effective_daghi
                 - manual_discount
                 + manual_surcharge
             )
@@ -391,7 +434,6 @@ class Sale(models.Model):
             self.battery.save()
 
             if self.installer:
-                settings = SystemSetting.objects.last()
                 fee_amount = (
                     settings.installation_fee if settings else Decimal('250000')
                 )
@@ -404,7 +446,7 @@ class Sale(models.Model):
                         sale=self,
                         description=(
                             f'اجرت نصب فاکتور شماره {self.id} (پلاک:'
-                            f' {self.car_plate})'
+                            f' {self.car_plate or "ثبت‌نشده"})'
                         ),
                     )
 

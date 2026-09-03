@@ -126,12 +126,12 @@
                     </div>
                 </div>
                 <div class="text-md-end d-flex flex-md-column gap-2 justify-content-between">
-                <span class="badge bg-dark border border-secondary text-info fs-6 px-3 py-2 rounded-pill">
-                    شماره فاکتور: #{{ sale.id }}
-                </span>
+                    <span class="badge bg-dark border border-secondary text-info fs-6 px-3 py-2 rounded-pill">
+                        شماره فاکتور: #{{ sale.id }}
+                    </span>
                     <span class="text-secondary small">
-                    تاریخ ثبت: <strong class="text-white">{{ sale.sale_date|to_jalali:'%Y/%m/%d' }}</strong>
-                </span>
+                        تاریخ ثبت: <strong class="text-white">{{ sale.sale_date|to_jalali:'%Y/%m/%d' }}</strong>
+                    </span>
                 </div>
             </div>
 
@@ -142,10 +142,8 @@
                         <span class="text-secondary small d-block mb-2"><i class="fa-solid fa-user me-1 text-info"></i> مشخصات مشتری</span>
                         <h5 class="fw-bold text-white mb-2">{{ sale.customer_name|default:"مشتری حضوری" }}</h5>
                         <div class="d-flex flex-column gap-1 text-secondary small">
-                            <span>شماره تماس: <strong
-                                    class="text-white dir-ltr d-inline-block">{{ sale.customer_phone|default:"---" }}</strong></span>
-                            <span>مدل خودرو: <strong
-                                    class="text-white">{{ sale.car_model|default:"---" }}</strong></span>
+                            <span>شماره تماس: <strong class="text-white dir-ltr d-inline-block">{{ sale.customer_phone|default:"---" }}</strong></span>
+                            <span>مدل خودرو: <strong class="text-white">{{ sale.car_model|default:"---" }}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -157,17 +155,14 @@
                             {% if sale.car_plate %}
                                 {% with plate=sale.formatted_plate_parts %}
                                     {% if plate %}
-                                        <div class="plate-badge shadow-sm"
-                                             style="font-family: 'Vazirmatn', sans-serif;">
-                                            <div class="bg-primary text-white d-flex flex-column justify-content-center align-items-center px-1"
-                                                 style="font-size: 0.55rem; width: 22px;">
+                                        <div class="plate-badge shadow-sm" style="font-family: 'Vazirmatn', sans-serif;">
+                                            <div class="bg-primary text-white d-flex flex-column justify-content-center align-items-center px-1" style="font-size: 0.55rem; width: 22px;">
                                                 <span>🇮🇷</span><span>I.R.</span>
                                             </div>
                                             <div class="px-2 py-1 fs-5 d-flex align-items-center">{{ plate.p1 }}</div>
                                             <div class="px-1 py-1 fs-5 d-flex align-items-center text-primary">{{ plate.p2 }}</div>
                                             <div class="px-2 py-1 fs-5 d-flex align-items-center">{{ plate.p3 }}</div>
-                                            <div class="border-start border-2 border-dark px-2 py-1 d-flex flex-column align-items-center justify-content-center bg-light"
-                                                 style="min-width: 45px;">
+                                            <div class="border-start border-2 border-dark px-2 py-1 d-flex flex-column align-items-center justify-content-center bg-light" style="min-width: 45px;">
                                                 <span style="font-size: 0.6rem; line-height: 1;" class="text-secondary">ایران</span>
                                                 <span class="fs-6 lh-1 mt-1">{{ plate.iran }}</span>
                                             </div>
@@ -220,8 +215,7 @@
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
                     <div class="info-box h-100">
-                        <span class="text-secondary small d-block mb-1"><i
-                                class="fa-solid fa-user-gear me-1 text-info"></i> نصاب / تکنسین اجرایی:</span>
+                        <span class="text-secondary small d-block mb-1"><i class="fa-solid fa-user-gear me-1 text-info"></i> نصاب / تکنسین اجرایی:</span>
                         <strong class="text-white">
                             {% if sale.installer %}
                                 {{ sale.installer.get_full_name|default:sale.installer.username }}
@@ -233,38 +227,43 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <div class="info-box h-100">
-                        <span class="text-secondary small d-block mb-1"><i
-                                class="fa-solid fa-recycle me-1 text-warning"></i> وضعیت داغی تحویلی:</span>
+                        <span class="text-secondary small d-block mb-1"><i class="fa-solid fa-recycle me-1 text-warning"></i> وضعیت داغی تحویلی:</span>
                         {% if sale.has_daghi %}
                             <span class="badge bg-success bg-opacity-25 border border-success text-success fs-6 py-1 px-2">
-                            <i class="fa-solid fa-check me-1"></i> تحویل شده ({{ sale.numeric_daghi_amperage }} آمپر)
-                        </span>
+                                <i class="fa-solid fa-check me-1"></i> تحویل شده ({{ sale.numeric_daghi_amperage }} آمپر)
+                            </span>
                         {% else %}
                             <span class="badge bg-danger bg-opacity-25 border border-danger text-danger fs-6 py-1 px-2">
-                            <i class="fa-solid fa-xmark me-1"></i> بدون داغی (قیمت تمام‌شده)
-                        </span>
+                                <i class="fa-solid fa-xmark me-1"></i> بدون تحویل داغی
+                            </span>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- ردیف ۴: صورت‌حساب مالی (کاملاً تفکیک‌شده) -->
+            <!-- ردیف ۴: صورت‌حساب مالی تفکیک‌شده بر اساس ورودی‌های واقعی -->
             <div class="info-box bg-dark p-4 rounded-3 border border-secondary border-opacity-25 mb-4">
                 <h6 class="text-secondary small fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
                     صورت‌حساب و محاسبات مالی
                 </h6>
 
-                <!-- قیمت مصوب باتری -->
+                <!-- قیمت باتری بدون داغی -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-secondary">قیمت مصوب باتری نو (بدون داغی):</span>
-                    <span class="text-white fw-bold">{{ sale.sale_price_without_daghi|intcomma }} تومان</span>
+                    <span class="text-secondary">قیمت باتری (بدون کسر داغی):</span>
+                    <span class="text-white fw-bold">
+                        {% if sale.calculated_base_price %}
+                            {{ sale.calculated_base_price|intcomma }} تومان
+                        {% else %}
+                            {{ sale.sale_price_without_daghi|intcomma }} تومان
+                        {% endif %}
+                    </span>
                 </div>
 
-                <!-- کسر داغی -->
+                <!-- کسر داغی بر اساس عدد ثبت‌شده کاربر -->
                 {% if sale.has_daghi %}
                     <div class="d-flex justify-content-between align-items-center mb-2 text-warning">
-                        <span>ارزش داغی کسر شده ({{ sale.numeric_daghi_amperage }} آمپر):</span>
-                        <span class="dir-ltr">- {{ sale.daghi_discount|intcomma }} تومان</span>
+                        <span>کسر داغی تحویلی ({{ sale.numeric_daghi_amperage }} آمپر):</span>
+                        <span class="dir-ltr">- {{ sale.daghi_received_price|default:sale.effective_daghi_price|intcomma }} تومان</span>
                     </div>
                 {% endif %}
 
@@ -289,29 +288,26 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="text-secondary">روش پرداخت:</span>
                     <span class="text-white fw-bold">
-                    {% if sale.payment_method %}
-                        <span class="badge border border-secondary px-3 py-2"
-                              style="background-color: #334155; font-size: 0.9rem;">
-                            <i class="fa-solid fa-credit-card me-1"></i> {{ sale.payment_method.name }}
-                        </span>
-                    {% else %}
-                        <span class="text-secondary">ثبت‌ نشده</span>
-                    {% endif %}
-                </span>
+                        {% if sale.payment_method %}
+                            <span class="badge border border-secondary px-3 py-2" style="background-color: #334155; font-size: 0.9rem;">
+                                <i class="fa-solid fa-credit-card me-1"></i> {{ sale.payment_method.name }}
+                            </span>
+                        {% else %}
+                            <span class="text-secondary">ثبت‌ نشده (اختیاری)</span>
+                        {% endif %}
+                    </span>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
-                    <h5 class="fw-bold mb-0 text-white">مبلغ نهایی فاکتور:</h5>
-                    <h3 class="fw-bold mb-0 text-success">{{ sale.final_sale_price|intcomma }} <small
-                            class="fs-6 text-white fw-normal">تومان</small></h3>
+                    <h5 class="fw-bold mb-0 text-white">مبلغ نهایی پرداختی:</h5>
+                    <h3 class="fw-bold mb-0 text-success">{{ sale.final_sale_price|intcomma }} <small class="fs-6 text-white fw-normal">تومان</small></h3>
                 </div>
             </div>
 
             <!-- شرایط و امضا در نسخه چاپی -->
             <div class="print-only mt-4 pt-3 border-top border-secondary">
                 <div class="small text-muted mb-4">
-                    <strong>شرایط گارانتی:</strong> اعتبار گارانتی صرفاً با ارائه این برگه و سلامت فیزیکی بدنه و قطب‌های
-                    باتری امکان‌پذیر است. دستکاری سیستم برقی یا دینام خودرو باعث ابطال گارانتی می‌گردد.
+                    <strong>شرایط گارانتی:</strong> اعتبار گارانتی صرفاً با ارائه این برگه و سلامت فیزیکی بدنه و قطب‌های باتری امکان‌پذیر است. دستکاری سیستم برقی یا دینام خودرو باعث ابطال گارانتی می‌گردد.
                 </div>
                 <div class="row text-center mt-5 pt-3">
                     <div class="col-6">
