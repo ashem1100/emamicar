@@ -1,193 +1,469 @@
-
 {% extends 'base.html' %}
 {% load humanize %}
+
 {% block extra_css %}
-<style>
-   /* استایل‌های قبلی کارت‌ها و جدول داشبوردت اینجا باشه */
-</style>
+    <style>
+        /* استایل کارت‌های شاخص آمار بالا */
+        .metric-card {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.25s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.4);
+        }
+
+        .metric-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .metric-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                font-size: 20px;
+            }
+        }
+
+        .metric-value {
+            font-size: 1.15rem;
+            letter-spacing: -0.5px;
+        }
+
+        @media (min-width: 768px) {
+            .metric-value {
+                font-size: 1.55rem;
+            }
+        }
+
+        /* =======================================
+           طراحی کارت‌های شیک موجودی انبار
+           ======================================= */
+        .inv-card {
+            background: linear-gradient(145deg, #162032, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .inv-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6);
+        }
+
+        /* برچسب آمپراژ پایدار (جلوگیری از به‌هم‌ریختگی حروف و ارقام) */
+        .amper-pill {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* نوار رنگی نشانگر کف کارت */
+        .inv-progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3.5px;
+        }
+
+        /* چیپ‌های فیلتر مدرن (Pills) */
+        .filter-chip {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #94a3b8;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .filter-chip:hover {
+            border-color: #38bdf8;
+            color: #fff;
+        }
+
+        .filter-chip.active {
+            background: #0284c7 !important;
+            border-color: #38bdf8 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
+
+        .chip-counter {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 1px 7px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
 
-    <!-- Main Container -->
     <div class="container-fluid px-3 px-md-4 py-4">
 
-       <!-- Header Title & Time Filter Buttons -->
+        <!-- Header Title & Time Filter Buttons -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
                 <h3 class="fw-bold mb-1 fs-4 fs-md-3">📊 داشبورد آمار و گزارشات</h3>
                 <p class="text-secondary small mb-0">خلاصه وضعیت انبار، موجودی باتری‌ها و داغی‌های تحویلی</p>
             </div>
 
-            <!-- دکمه‌های فیلتر زمانی ظریف و تک‌خطی -->
+            <!-- فیلترهای زمانی دوره -->
             <div class="filter-scroll-wrapper">
-                <div class="btn-group filter-btn-group bg-dark p-1 rounded-pill border border-secondary border-opacity-25 shadow-sm" role="group">
-                    <a href="?period=today" class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'today' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
+                <div class="btn-group filter-btn-group bg-dark p-1 rounded-pill border border-secondary border-opacity-25 shadow-sm"
+                     role="group">
+                    <a href="?period=today"
+                       class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'today' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
                         امروز
                     </a>
-                    <a href="?period=week" class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'week' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
+                    <a href="?period=week"
+                       class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'week' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
                         ۷ روز
                     </a>
-                    <a href="?period=month" class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'month' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
+                    <a href="?period=month"
+                       class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'month' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
                         ۳۰ روز
                     </a>
-                    <a href="?period=year" class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'year' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
+                    <a href="?period=year"
+                       class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'year' %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
                         امسال
                     </a>
-                    <a href="?period=all" class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'all' or not period %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
+                    <a href="?period=all"
+                       class="btn btn-sm rounded-pill text-nowrap px-3 {% if period == 'all' or not period %}btn-primary fw-bold{% else %}text-secondary border-0{% endif %}">
                         کل دوره
                     </a>
                 </div>
             </div>
         </div>
 
-<!-- Metric Cards (۶ کارت آمار در ۲ سطر - هر سطر ۳ کارت خوانا و عریض) -->
-        <div class="row g-3 mb-4">
-            <!-- سطر اول -->
-            <!-- Card 1: موجودی انبار -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">موجودی انبار</span>
-                            <h3 class="fw-bold mb-0 text-white">{{ total_available_count|intcomma }} <small class="fs-6 text-secondary">عدد</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-blue text-white">
+        <!-- Metric Cards: ۲ عدد در موبایل | ۳ عدد در دسکتاپ -->
+        <div class="row g-2 g-md-3 mb-4">
+
+            <!-- موجودی انبار -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">موجودی انبار</span>
+                        <div class="metric-icon bg-gradient-blue text-white shadow-sm">
                             <i class="fa-solid fa-boxes-stacked"></i>
                         </div>
                     </div>
+                    <div>
+                        <div class="metric-value fw-bold text-white mb-0">
+                            {{ total_available_count|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">عدد</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Card 2: تعداد فاکتور فروش -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">تعداد فروش</span>
-                            <h3 class="fw-bold mb-0" style="color: #38bdf8;">{{ total_sales_count|intcomma }} <small class="fs-6 text-secondary">فاکتور</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-sky text-white">
+            <!-- تعداد فروش -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">تعداد فاکتور</span>
+                        <div class="metric-icon bg-gradient-sky text-white shadow-sm">
                             <i class="fa-solid fa-file-invoice-dollar"></i>
                         </div>
                     </div>
+                    <div>
+                        <div class="metric-value fw-bold mb-0" style="color: #38bdf8;">
+                            {{ total_sales_count|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">فاکتور</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Card 3: تعداد داغی -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">تعداد داغی</span>
-                            <h3 class="fw-bold mb-0" style="color: #fbbf24;">{{ total_daghi_count|intcomma }} <small class="fs-6 text-secondary">عدد</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-amber text-white">
+            <!-- تعداد داغی -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">تعداد داغی</span>
+                        <div class="metric-icon bg-gradient-amber text-white shadow-sm">
                             <i class="fa-solid fa-recycle"></i>
                         </div>
                     </div>
+                    <div>
+                        <div class="metric-value fw-bold mb-0" style="color: #fbbf24;">
+                            {{ total_daghi_count|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">عدد</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- سطر دوم -->
-            <!-- Card 4: مجموع آمپر داغی -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">مجموع آمپر داغی</span>
-                            <h3 class="fw-bold mb-0 text-warning">{{ total_daghi_amperage|intcomma }} <small class="fs-6 text-secondary">آمپر</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-purple text-white">
+            <!-- مجموع آمپر داغی -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">مجموع آمپر داغی</span>
+                        <div class="metric-icon bg-gradient-purple text-white shadow-sm">
                             <i class="fa-solid fa-bolt"></i>
                         </div>
                     </div>
+                    <div>
+                        <div class="metric-value fw-bold text-warning mb-0">
+                            {{ total_daghi_amperage|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">آمپر</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Card 5: مجموع کل خرید -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">مجموع کل خرید</span>
-                            <h3 class="fw-bold mb-0" style="color: #a78bfa;">{{ total_purchase_amount|intcomma }} <small class="fs-6 text-secondary">تومان</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-purple text-white" style="background: linear-gradient(135deg, #6366f1, #4338ca);">
+            <!-- مجموع خرید -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">مجموع خرید</span>
+                        <div class="metric-icon text-white shadow-sm"
+                             style="background: linear-gradient(135deg, #6366f1, #4338ca);">
                             <i class="fa-solid fa-cart-shopping"></i>
                         </div>
                     </div>
+                    <div>
+                        <div class="metric-value fw-bold mb-0" style="color: #a78bfa;">
+                            {{ total_purchase_amount|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">تومان</small>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Card 6: مجموع مبلغ فروش -->
-            <div class="col-12 col-sm-6 col-md-4">
-                <div class="stat-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-secondary small d-block mb-1">مجموع مبلغ فروش</span>
-                            <h3 class="fw-bold mb-0" style="color: #34d399;">{{ total_sales_amount|intcomma }} <small class="fs-6 text-secondary">تومان</small></h3>
-                        </div>
-                        <div class="stat-icon bg-gradient-emerald text-white">
+            <!-- مجموع فروش -->
+            <div class="col-6 col-md-4">
+                <div class="metric-card p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2 mb-md-3">
+                        <span class="text-secondary small">مجموع فروش</span>
+                        <div class="metric-icon bg-gradient-emerald text-white shadow-sm">
                             <i class="fa-solid fa-sack-dollar"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="metric-value fw-bold mb-0" style="color: #34d399;">
+                            {{ total_sales_amount|intcomma }}
+                            <small class="fs-6 text-secondary fw-normal">تومان</small>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
-        <!-- Tables Section -->
-        <div class="row g-4">
-            <!-- Table: Inventory Summary -->
+
+        <!-- =======================================
+             بخش بازطراحی‌شده موجودی انبار (کارت‌های مدرن)
+             ======================================= -->
+        <div class="row g-4 mt-1">
             <div class="col-12">
                 <div class="content-card p-3 p-md-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0 d-flex align-items-center gap-2 text-white fs-6 fs-md-5">
-                            <i class="fa-solid fa-warehouse text-primary"></i>
-                            موجودی انبار (به تفکیک برند و آمپر)
-                        </h5>
+
+                    <!-- هدر و آمار خلاصه تنوع -->
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3 pb-3 border-bottom border-secondary border-opacity-25">
+                        <div>
+                            <h5 class="fw-bold mb-1 d-flex align-items-center gap-2 text-white fs-6 fs-md-5">
+                                <i class="fa-solid fa-boxes-stacked text-info"></i>
+                                چیدمان و موجودی باتری‌های انبار
+                            </h5>
+                            <p class="text-secondary small mb-0">نمایش وضعیت موجودی با کلیک سریع روی فیلترها</p>
+                        </div>
+                        <div>
+                            <span class="badge bg-dark border border-secondary border-opacity-50 text-secondary fw-normal px-3 py-2 rounded-pill">
+                                تنوع کالا: <strong class="text-white">{{ inventory_summary|length }}</strong> مدل
+                            </span>
+                        </div>
                     </div>
-                    <div class="table-responsive rounded-3 overflow-hidden">
-                        <table class="table table-dark-custom align-middle">
-                            <thead>
-                                <tr>
-                                    <th>برند باتری</th>
-                                    <th>آمپر</th>
-                                    <th class="text-center">تعداد موجود در انبار</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in inventory_summary %}
-                                <tr>
-                                    <td class="fw-bold">
-                                        <i class="fa-solid fa-tag me-2 text-primary"></i>
-                                        {{ item.brand__name }}
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-amber rounded-pill px-3 py-2 fs-6">
-                                            {{ item.amperage }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-primary rounded-pill px-3 py-2 fs-6">
-                                            {{ item.count|intcomma }} عدد
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center py-5 text-secondary">
-                                        <i class="fa-solid fa-box-open fs-1 d-block mb-2 opacity-50"></i>
-                                        هیچ باتری موجودی در انبار یافت نشد.
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+
+                    <!-- ردیف فیلترهای تک‌کلیکه (Filter Chips) بدون نیاز به تایپ -->
+                    <div class="filter-scroll-wrapper mb-4">
+                        <div class="d-flex align-items-center gap-2 py-1">
+                            <div class="filter-chip active" data-filter="all" onclick="applyQuickFilter(this, 'all')">
+                                همه مدل‌ها
+                            </div>
+                            {% regroup inventory_summary by brand__name as brand_list %}
+                            {% for brand_group in brand_list %}
+                                <div class="filter-chip" data-filter="brand-{{ brand_group.grouper }}"
+                                     onclick="applyQuickFilter(this, 'brand-{{ brand_group.grouper }}')">
+                                    <i class="fa-solid fa-tag me-1" style="font-size: 0.7rem;"></i>
+                                    {{ brand_group.grouper }}
+                                </div>
+                            {% endfor %}
+                            <!-- تفکیک خودکار برندها به صورت تب -->
+                            <div class="border-end border-secondary border-opacity-25 mx-1" style="height: 20px;"></div>
+                            <div class="filter-chip" data-filter="status-critical"
+                                 onclick="applyQuickFilter(this, 'status-critical')">
+                                <span class="stock-indicator stock-critical me-1"></span> موجودی کم (زیر ۲)
+                            </div>
+                            <div class="filter-chip" data-filter="status-low"
+                                 onclick="applyQuickFilter(this, 'status-low')">
+                                <span class="stock-indicator stock-low me-1"></span> رو به اتمام (۲ تا ۴)
+                            </div>
+                            <div class="filter-chip" data-filter="status-high"
+                                 onclick="applyQuickFilter(this, 'status-high')">
+                                <span class="stock-indicator stock-high me-1"></span> مطلوب (۵ به بالا)
+                            </div>
+
+                        </div>
                     </div>
+
+                    <!-- شبکه کارت‌های همسان (هم موبایل و هم دسکتاپ) -->
+                    <div class="row g-2 g-md-3" id="inventoryCardsGrid">
+                        {% for item in inventory_summary %}
+                            {% with c=item.count %}
+                                <div class="col-6 col-md-4 col-lg-3 col-xl-2 inv-item-wrapper"
+                                     data-brand="brand-{{ item.brand__name }}"
+                                     data-status="{% if c >= 5 %}status-high{% elif c >= 2 %}status-low{% else %}status-critical{% endif %}">
+
+                                    <div class="inv-card p-3 h-100 d-flex flex-column justify-content-between">
+
+                                        <!-- بخش بالا: آمپر و نشانگر رنگی -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="amper-pill">
+                                                <span>{{ item.amperage }}</span>
+                                                <span style="font-size: 0.65rem; opacity: 0.85;">آمپر</span>
+                                            </div>
+
+                                            {% if c >= 5 %}
+                                                <span class="stock-indicator stock-high"
+                                                      title="موجودی مطلوب ({{ c }} عدد)"></span>
+                                            {% elif c >= 2 %}
+                                                <span class="stock-indicator stock-low"
+                                                      title="رو به اتمام ({{ c }} عدد)"></span>
+                                            {% else %}
+                                                <span class="stock-indicator stock-critical"
+                                                      title="بحرانی / کم ({{ c }} عدد)"></span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- بخش وسط: نام برند -->
+                                        <div class="my-2">
+                                            <h6 class="fw-bold text-white text-truncate mb-1"
+                                                style="font-size: 0.95rem;">
+                                                {{ item.brand__name }}
+                                            </h6>
+                                            <div class="text-secondary" style="font-size: 0.7rem;">
+                                                {% if c >= 5 %}
+                                                    <span class="text-success opacity-75">موجودی کافی</span>
+                                                {% elif c >= 2 %}
+                                                    <span class="text-warning opacity-75">نیازمند بررسی</span>
+                                                {% else %}
+                                                    <span class="text-danger opacity-75">سفارش‌گذاری شود</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- بخش پایین: شمارنده موجودی -->
+                                        <div class="d-flex justify-content-between align-items-baseline pt-2 border-top border-secondary border-opacity-10 mt-1">
+                                            <span class="text-secondary" style="font-size: 0.7rem;">موجود:</span>
+                                            <div>
+                                                <span class="fw-bold fs-5 text-white">{{ c|intcomma }}</span>
+                                                <span class="text-secondary small ms-1"
+                                                      style="font-size: 0.65rem;">عدد</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- نوار وضعیت انتهای کارت -->
+                                        <div class="inv-progress-bar {% if c >= 5 %}bg-success{% elif c >= 2 %}bg-warning{% else %}bg-danger{% endif %} opacity-75"></div>
+                                    </div>
+                                </div>
+                            {% endwith %}
+                        {% empty %}
+                            <div class="col-12 text-center py-5 text-secondary">
+                                <i class="fa-solid fa-box-open fs-1 d-block mb-3 opacity-40"></i>
+                                هیچ باتری موجودی در انبار یافت نشد.
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- پیام فیلتر بدون نتیجه -->
+                    <div id="noInventoryFilterMsg" class="text-center py-5 text-secondary d-none">
+                        <i class="fa-solid fa-filter-circle-xmark fs-2 d-block mb-2 text-warning opacity-50"></i>
+                        هیچ باتری با این فیلتر در انبار پیدا نشد.
+                    </div>
+
                 </div>
             </div>
         </div>
 
     </div>
 
- {% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // سیستم فیلتر سریع با لمس چیپ‌ها بدون نیاز به تایپ
+        function applyQuickFilter(chipElement, filterValue) {
+            // تغییر کلاس اکتیو دکمه‌ها
+            document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
+            chipElement.classList.add('active');
+
+            const items = document.querySelectorAll('.inv-item-wrapper');
+            const emptyMsg = document.getElementById('noInventoryFilterMsg');
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const itemBrand = item.getAttribute('data-brand');
+                const itemStatus = item.getAttribute('data-status');
+
+                if (filterValue === 'all') {
+                    item.style.display = '';
+                    visibleCount++;
+                } else if (filterValue.startsWith('status-')) {
+                    if (itemStatus === filterValue) {
+                        item.style.display = '';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                } else if (filterValue.startsWith('brand-')) {
+                    if (itemBrand === filterValue) {
+                        item.style.display = '';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+
+            // نمایش پیام در صورت نبود آیتم مطابق
+            if (visibleCount === 0 && items.length > 0) {
+                emptyMsg.classList.remove('d-none');
+            } else {
+                emptyMsg.classList.add('d-none');
+            }
+        }
+    </script>
+{% endblock %}

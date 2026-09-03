@@ -15,6 +15,7 @@ from collections import defaultdict
 from django.db.models.functions import Coalesce
 from decimal import Decimal
 from django.views.decorators.http import require_POST
+import uuid
 
 
 @staff_member_required
@@ -57,9 +58,7 @@ def dashboard_view(request):
 
     total_sales_count = sales_queryset.count()
     total_sales_amount = (
-            sales_queryset.aggregate(Sum('final_sale_price'))[
-                'final_sale_price__sum'
-            ]
+            sales_queryset.aggregate(Sum('final_sale_price'))['final_sale_price__sum']
             or 0
     )
 
@@ -253,11 +252,18 @@ def sale_create_view(request):
         except Exception:
             final_price_val = None
 
+        # اعتبارسنجی پلاک اختیاری
         p1 = request.POST.get('plate_1', '').strip()
         p2 = request.POST.get('plate_2', '').strip()
         p3 = request.POST.get('plate_3', '').strip()
         p4 = request.POST.get('plate_4', '').strip()
-        car_plate = f'{p1} {p2} {p3} - ایران {p4}' if (p1 and p3) else ''
+
+        if any([p1, p2, p3, p4]):
+            main_parts = " ".join([part for part in [p1, p2, p3] if part])
+            iran_part = f" - ایران {p4}" if p4 else ""
+            car_plate = f"{main_parts}{iran_part}".strip()
+        else:
+            car_plate = None
 
         has_daghi = request.POST.get('has_daghi') == 'on'
         daghi_amperage = (
@@ -336,9 +342,12 @@ def sale_create_view(request):
     }
     return render(request, 'sale_form.html', context)
 
+
 @login_required
 def installer_dashboard_view(request):
-    my_sales = Sale.objects.filter(installer=request.user).order_by('-sale_date')
+    """داشبورد اختصاصی نصاب به همراه آمار فروش‌های اخیر"""
+    my_sales = Sale.objects.filter(installer=request.user).select_related('battery', 'battery__brand').order_by(
+        '-sale_date')
     context = {
         'my_sales': my_sales,
     }
@@ -383,11 +392,18 @@ def installer_sale_create_view(request):
         except Exception:
             final_price_val = None
 
+        # اعتبارسنجی پلاک اختیاری
         p1 = request.POST.get('plate_1', '').strip()
         p2 = request.POST.get('plate_2', '').strip()
         p3 = request.POST.get('plate_3', '').strip()
         p4 = request.POST.get('plate_4', '').strip()
-        car_plate = f'{p1} {p2} {p3} - ایران {p4}' if (p1 and p3) else ''
+
+        if any([p1, p2, p3, p4]):
+            main_parts = " ".join([part for part in [p1, p2, p3] if part])
+            iran_part = f" - ایران {p4}" if p4 else ""
+            car_plate = f"{main_parts}{iran_part}".strip()
+        else:
+            car_plate = None
 
         has_daghi = request.POST.get('has_daghi') == 'on'
         daghi_amperage = request.POST.get('daghi_amperage', '') if has_daghi else None
@@ -457,10 +473,6 @@ def installer_sale_create_view(request):
         'today_jalali': today_jalali,
     }
     return render(request, 'installer_sale_form.html', context)
-@login_required
-def installer_dashboard_view(request):
-    """داشبورد اختصاصی نصاب - فقط صفحه خوش‌آمدگویی و دسترسی سریع"""
-    return render(request, 'installer_dashboard.html')
 
 
 @login_required
@@ -567,12 +579,16 @@ def installer_management_view(request):
 def installer_payout_view(request, user_id):
     installer = get_object_or_404(User, id=user_id)
 
-    earned = \
-        InstallerTransaction.objects.filter(installer=installer, transaction_type='earn').aggregate(s=Sum('amount'))[
-            's'] or 0
-    payout = \
-        InstallerTransaction.objects.filter(installer=installer, transaction_type='payout').aggregate(s=Sum('amount'))[
-            's'] or 0
+    earned = (
+            InstallerTransaction.objects.filter(installer=installer, transaction_type='earn').aggregate(
+                s=Sum('amount'))['s']
+            or 0
+    )
+    payout = (
+            InstallerTransaction.objects.filter(installer=installer, transaction_type='payout').aggregate(
+                s=Sum('amount'))['s']
+            or 0
+    )
     balance = earned - payout
 
     if request.method == 'POST':
@@ -621,8 +637,6 @@ def installer_wallet_view(request):
     return render(request, 'installer_wallet.html', context)
 
 
-import uuid
-
 @staff_member_required
 @require_POST
 def quick_add_battery_view(request):
@@ -640,12 +654,10 @@ def quick_add_battery_view(request):
 
         brand = Brand.objects.get(pk=brand_id)
 
-        # سریال خودکار: QUICK-{BrandInitial}{amperage}-{uuid کوتاه}
         short_uuid = uuid.uuid4().hex[:6].upper()
         brand_code = brand.name[0].upper()
         serial_code = f"QUICK-{brand_code}{amperage}-{short_uuid}"
 
-        # ضمانت یکتایی (در صورت تصادف بسیار نادر)
         while Battery.objects.filter(serial_code=serial_code).exists():
             short_uuid = uuid.uuid4().hex[:6].upper()
             serial_code = f"QUICK-{brand_code}{amperage}-{short_uuid}"
@@ -658,7 +670,6 @@ def quick_add_battery_view(request):
             status='available',
         )
 
-        # آمپر عددی و نرخ برند برای محاسبه JS
         return JsonResponse({
             'success': True,
             'battery': {
