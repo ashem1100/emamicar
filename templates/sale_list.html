@@ -1,37 +1,184 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load humanize %}
-{% load jalali_tags %} <!-- اضافه شدن تگ‌های تاریخ شمسی -->
+{% load jalali_tags %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/jalalidatepicker.min.css' %}">
 <style>
-    .filter-card, .table-card { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
-    .form-dark { background-color: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); color: #f8fafc; border-radius: 8px; }
-    .form-dark:focus { background-color: #0f172a; color: #fff; border-color: #38bdf8; }
+    .filter-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+    }
 
-    /* استایل پلاک کوچک مخصوص داخل جدول */
+    .table-container-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .form-dark {
+        background-color: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #f8fafc;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-dark:focus {
+        background-color: #0f172a;
+        color: #fff;
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    }
+
+    /* مدیریت موقعیت و اندازه دکمه ثبت فاکتور */
+    .create-sale-wrapper {
+        width: 100%;
+    }
+
+    .btn-create-sale {
+        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        color: #ffffff !important;
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        box-shadow: 0 4px 18px -2px rgba(16, 185, 129, 0.45);
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        width: 100%;
+    }
+
+    /* تنظیمات اختصاصی دسکتاپ: هل دادن دکمه به منتهی‌الیه سمت چپ و ابعاد متناسب */
+    @media (min-width: 768px) {
+        .create-sale-wrapper {
+            width: auto !important;
+            margin-right: auto !important; /* در جهت راست‌به‌چپ المان را به سمت چپ هل می‌دهد */
+            margin-left: 0 !important;
+        }
+
+        .btn-create-sale {
+            width: auto !important;
+            padding: 9px 22px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            display: inline-flex;
+        }
+    }
+
+    .btn-create-sale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px -2px rgba(16, 185, 129, 0.65);
+        border-color: #6ee7b7;
+        color: #ffffff !important;
+    }
+
+    .btn-create-sale:active {
+        transform: translateY(0);
+    }
+
+    .btn-create-sale .btn-icon-wrapper {
+        background: rgba(255, 255, 255, 0.2);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+
+    /* استایل پلاک خودرو */
     .table-plate-badge {
         display: inline-flex;
         align-items: stretch;
         background: #ffffff;
-        color: #000000;
-        border: 1px solid #000000;
-        border-radius: 4px;
-        font-weight: bold;
+        color: #111827;
+        border: 1px solid #94a3b8;
+        border-radius: 6px;
+        font-weight: 700;
         direction: ltr;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         overflow: hidden;
+        height: 28px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
+
     .table-plate-flag {
-        background: #0284c7;
+        background: #1d4ed8;
         color: #ffffff;
-        font-size: 0.45rem;
-        width: 14px;
+        font-size: 0.5rem;
+        padding: 0 4px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        font-weight: 900;
+    }
+
+    .table-plate-iran {
+        border-inline-start: 1px solid #cbd5e1;
+        background: #f8fafc;
+        padding: 0 5px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.72rem;
+        color: #334155;
+    }
+
+    /* دکمه مشاهده فاکتور */
+    .btn-invoice-action {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(14, 165, 233, 0.25));
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: #38bdf8;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 20px;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-invoice-action:hover {
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+        color: #ffffff;
+        border-color: #38bdf8;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        transform: translateY(-1px);
+    }
+
+    /* کارت‌های نسخه موبایل */
+    .sale-mobile-card {
+        background: linear-gradient(145deg, #162032, #0f172a);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 16px;
+        transition: all 0.25s ease;
+    }
+
+    .badge-subtle-warning {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-subtle-danger {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
     }
 </style>
 {% endblock %}
@@ -39,125 +186,257 @@
 {% block content %}
 <div class="container-fluid px-3 px-md-4 py-4">
 
-    <!-- Header & Add Button -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <!-- سربرگ صفحه -->
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-3 mb-4">
         <div>
-            <h3 class="fw-bold mb-1 fs-4">🛒 مدیریت و لیست فاکتورهای فروش</h3>
-            <p class="text-secondary small mb-0">نمایش کلیه فروش‌ها با قابلیت فیلتر پیشرفته و سرچ سریع</p>
+            <h3 class="fw-bold mb-1 fs-4 text-white d-flex align-items-center gap-2">
+                <i class="fa-solid fa-receipt text-warning"></i>
+                مدیریت فاکتورهای فروش
+            </h3>
+            <p class="text-secondary small mb-0">جستجو، بررسی و مشاهده فاکتورهای رسمی و وضعیت گارانتی</p>
         </div>
-        <a href="{% url 'sale_create' %}" class="btn btn-emerald rounded-pill px-4 text-white" style="background: linear-gradient(135deg, #10b981, #047857);">
-            <i class="fa-solid fa-plus me-1"></i> ثبت فاکتور فروش جدید
-        </a>
+
+        <!-- دکمه ثبت (در موبایل تمام‌عرض و در دسکتاپ سمت چپ) -->
+        <div class="create-sale-wrapper">
+            <a href="{% url 'sale_create' %}" class="btn-create-sale">
+                <span class="btn-icon-wrapper">
+                    <i class="fa-solid fa-plus"></i>
+                </span>
+                <span>ثبت فاکتور فروش جدید</span>
+            </a>
+        </div>
     </div>
 
-    <!-- Filter Form -->
-    <div class="filter-card p-3 p-md-4 mb-4">
-        <form method="GET" class="row g-3">
+    <!-- فرم فیلترهای پیشرفته -->
+    <div class="filter-card p-3 p-md-4 mb-4 shadow-sm">
+        <form method="GET" class="row g-2 g-md-3 align-items-end">
             <div class="col-12 col-md-3">
-                <label class="form-label text-secondary small">جستجو:</label>
-                <input type="text" name="search" value="{{ search_query }}" placeholder="نام، پلاک، تلفن، سریال..." class="form-control form-dark">
+                <label class="form-label text-secondary small mb-1">جستجوی آزاد:</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="مشتری، خودرو، پلاک..." class="form-control form-dark">
+                </div>
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="form-label text-secondary small">برند:</label>
-                <select name="brand" class="form-select form-dark">
+
+            <div class="col-6 col-md-2">
+                <label class="form-label text-secondary small mb-1">برند باتری:</label>
+                <select name="brand" class="form-select form-select-sm form-dark">
                     <option value="">همه برندها</option>
                     {% for brand in brands %}
                         <option value="{{ brand.id }}" {% if selected_brand == brand.id %}selected{% endif %}>{{ brand.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="form-label text-secondary small">آمپر:</label>
-                <select name="amperage" class="form-select form-dark">
+
+            <div class="col-6 col-md-2">
+                <label class="form-label text-secondary small mb-1">آمپراژ:</label>
+                <select name="amperage" class="form-select form-select-sm form-dark">
                     <option value="">همه آمپرها</option>
                     {% for amp in amperages %}
-                        <option value="{{ amp }}" {% if selected_amperage == amp %}selected{% endif %}>{{ amp }}</option>
+                        <option value="{{ amp }}" {% if selected_amperage == amp %}selected{% endif %}>{{ amp }} آمپر</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="form-label text-secondary small">از تاریخ:</label>
-                <input type="text" name="start_date" value="{{ start_date }}" data-jdp class="form-control form-dark" placeholder="1403/01/01">
+
+            <div class="col-6 col-md-2">
+                <label class="form-label text-secondary small mb-1">از تاریخ:</label>
+                <input type="text" name="start_date" value="{{ start_date }}" data-jdp class="form-control form-control-sm form-dark text-center" placeholder="1403/01/01" autocomplete="off">
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
-                <label class="form-label text-secondary small">تا تاریخ:</label>
-                <input type="text" name="end_date" value="{{ end_date }}" data-jdp class="form-control form-dark" placeholder="1403/12/29">
+
+            <div class="col-6 col-md-2">
+                <label class="form-label text-secondary small mb-1">تا تاریخ:</label>
+                <input type="text" name="end_date" value="{{ end_date }}" data-jdp class="form-control form-control-sm form-dark text-center" placeholder="1403/12/29" autocomplete="off">
             </div>
-            <div class="col-12 col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100 rounded-3"><i class="fa-solid fa-filter"></i></button>
+
+            <div class="col-12 col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm flex-fill rounded-3" title="اعمال فیلتر">
+                    <i class="fa-solid fa-filter me-1"></i> فیلتر
+                </button>
+                {% if search_query or selected_brand or selected_amperage or start_date or end_date %}
+                <a href="{% url 'sale_list' %}" class="btn btn-outline-secondary btn-sm rounded-3" title="پاکسازی فیلتر">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+                {% endif %}
             </div>
         </form>
     </div>
 
-    <!-- Sales Table -->
-    <div class="table-card p-3 p-md-4">
+    <!-- جدول نسخه دسکتاپ و تبلت -->
+    <div class="d-none d-md-block table-container-card shadow-lg mb-4">
         <div class="table-responsive">
-            <table class="table table-dark align-middle mb-0">
+            <table class="table table-dark-custom align-middle mb-0">
                 <thead>
-                    <tr class="text-secondary">
-                        <th>مشتری</th>
-                        <th>باتری / برند</th>
+                    <tr>
+                        <th class="ps-3">#</th>
+                        <th>تاریخ ثبت</th>
+                        <th>خریدار / مدل خودرو</th>
+                        <th>باتری فروخته شده</th>
                         <th>پلاک خودرو</th>
                         <th>مبلغ نهایی</th>
-                        <th>وضعیت داغی</th>
-                        <th>تاریخ فروش</th>
-                        <th class="text-center">عملیات</th>
+                        <th class="text-center">وضعیت داغی</th>
+                        <th class="text-center pe-3">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for sale in sales %}
                     <tr>
-                        <td class="fw-bold">{{ sale.customer_name|default:"بدون نام" }} <br><small class="text-secondary fw-normal">{{ sale.customer_phone|default:"تلفن ثبت نشده!" }}</small></td>
-                        <td>{{ sale.battery.brand.name }} - {{ sale.battery.amperage }} <br><small class="text-info">{{ sale.battery.serial_code }}</small></td>
+                        <td class="ps-3 text-secondary font-monospace">#{{ sale.id }}</td>
+                        <td class="text-nowrap">
+                            <div class="text-white small fw-bold">
+                                <i class="fa-regular fa-calendar text-info me-1"></i>{{ sale.sale_date|to_jalali:'%Y/%m/%d' }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-white">{{ sale.customer_name|default:"مشتری حضوری" }}</div>
+                            <div class="small text-secondary">
+                                {% if sale.customer_phone %}<i class="fa-solid fa-phone me-1" style="font-size: 0.65rem;"></i>{{ sale.customer_phone }} | {% endif %}
+                                {{ sale.car_model|default:"خودرو ثبت‌نشده" }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-white">{{ sale.battery.brand.name }}</span>
+                                <span class="badge bg-dark border border-secondary border-opacity-50 text-warning px-2 py-1 rounded-pill">
+                                    {{ sale.battery.amperage }} آمپر
+                                </span>
+                            </div>
+                        </td>
                         <td>
                             {% if sale.car_plate %}
                                 {% with plate=sale.formatted_plate_parts %}
                                     {% if plate %}
-                                        <!-- نمایش تمیز پلاک داخل جدول -->
                                         <div class="table-plate-badge shadow-sm">
                                             <div class="table-plate-flag">🇮🇷</div>
-                                            <div class="px-1 py-0.5">{{ plate.p1 }}</div>
-                                            <div class="px-0.5 py-0.5 text-primary">{{ plate.p2 }}</div>
-                                            <div class="px-1 py-0.5">{{ plate.p3 }}</div>
-                                            <div class="border-start border-dark px-1 py-0.5 bg-light text-dark" style="font-size: 0.75rem;">
-                                                {{ plate.iran }}
+                                            <div class="px-1.5 d-flex align-items-center">{{ plate.p1 }}</div>
+                                            <div class="px-1 text-primary fw-bolder d-flex align-items-center">{{ plate.p2 }}</div>
+                                            <div class="px-1.5 d-flex align-items-center">{{ plate.p3 }}</div>
+                                            <div class="table-plate-iran">
+                                                <span style="font-size: 0.5rem; line-height: 1;">ایران</span>
+                                                <span class="fw-bold">{{ plate.iran }}</span>
                                             </div>
                                         </div>
                                     {% else %}
-                                        <span class="badge bg-secondary dir-ltr">{{ sale.car_plate }}</span>
+                                        <span class="badge bg-dark border border-secondary text-white dir-ltr">{{ sale.car_plate }}</span>
                                     {% endif %}
                                 {% endwith %}
                             {% else %}
-                                <span class="text-secondary opacity-50">بدون پلاک</span>
+                                <span class="text-secondary small opacity-75">بدون پلاک</span>
                             {% endif %}
                         </td>
-                        <td class="text-success fw-bold">{{ sale.final_sale_price|intcomma }} تومان</td>
                         <td>
-                            {% if sale.has_daghi %}
-                                <span class="badge bg-warning text-dark">تحویل داده</span>
-                            {% else %}
-                                <span class="badge bg-danger">بدون داغی</span>
+                            <span class="fw-bold text-success fs-6">{{ sale.final_sale_price|intcomma }}</span>
+                            <span class="text-secondary small">تومان</span>
+                            {% if sale.payment_method %}
+                                <div class="text-secondary" style="font-size: 0.7rem;">{{ sale.payment_method.name }}</div>
                             {% endif %}
                         </td>
-                        <!-- تبدیل تاریخ به شمسی -->
-                        <td>{{ sale.sale_date|to_jalali:'%Y/%m/%d' }}</td>
                         <td class="text-center">
-                            <a href="{% url 'sale_detail' sale.pk %}" class="btn btn-sm btn-outline-info rounded-pill px-3">
-                                <i class="fa-solid fa-eye me-1"></i> فاکتور
+                            {% if sale.has_daghi %}
+                                <span class="badge badge-subtle-warning rounded-pill px-2.5 py-1">
+                                    <i class="fa-solid fa-check me-1"></i> {{ sale.numeric_daghi_amperage }}A داغی
+                                </span>
+                            {% else %}
+                                <span class="badge badge-subtle-danger rounded-pill px-2.5 py-1">
+                                    بدون داغی
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center pe-3">
+                            <a href="{% url 'sale_detail' sale.pk %}" class="btn-invoice-action">
+                                <i class="fa-solid fa-file-invoice"></i>
+                                <span>فاکتور</span>
                             </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center py-4 text-secondary">هیچ فاکتور فروشی یافت نشد.</td></tr>
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-secondary">
+                            <i class="fa-solid fa-box-open fs-1 d-block mb-3 opacity-40"></i>
+                            هیچ فاکتور فروشی یافت نشد.
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- نسخه کارت‌های موبایل -->
+    <div class="d-md-none row g-3 mb-4">
+        {% for sale in sales %}
+        <div class="col-12">
+            <div class="sale-mobile-card p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-10">
+                    <span class="badge bg-dark border border-secondary border-opacity-50 text-secondary font-monospace">#{{ sale.id }}</span>
+                    <span class="small text-secondary"><i class="fa-regular fa-calendar me-1"></i>{{ sale.sale_date|to_jalali:'%Y/%m/%d' }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="fw-bold text-white mb-0">{{ sale.customer_name|default:"مشتری حضوری" }}</h6>
+                        <span class="text-secondary small">{{ sale.car_model|default:"بدون مدل خودرو" }}</span>
+                    </div>
+                    {% if sale.car_plate %}
+                        {% with plate=sale.formatted_plate_parts %}
+                            {% if plate %}
+                                <div class="table-plate-badge shadow-sm">
+                                    <div class="table-plate-flag">🇮🇷</div>
+                                    <div class="px-1 d-flex align-items-center">{{ plate.p1 }}</div>
+                                    <div class="px-1 text-primary fw-bolder d-flex align-items-center">{{ plate.p2 }}</div>
+                                    <div class="px-1 d-flex align-items-center">{{ plate.p3 }}</div>
+                                    <div class="table-plate-iran">{{ plate.iran }}</div>
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </div>
+
+                <div class="bg-dark bg-opacity-50 p-2 rounded-3 mb-2 small d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="text-white fw-bold">{{ sale.battery.brand.name }}</span>
+                        <span class="badge bg-dark border border-secondary text-warning ms-1">{{ sale.battery.amperage }} آمپر</span>
+                    </div>
+                    <div>
+                        {% if sale.has_daghi %}
+                            <span class="badge badge-subtle-warning">داغی {{ sale.numeric_daghi_amperage }}A</span>
+                        {% else %}
+                            <span class="badge badge-subtle-danger">بدون داغی</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10">
+                    <div>
+                        <span class="text-secondary small d-block" style="font-size: 0.7rem;">مبلغ دریافتی:</span>
+                        <strong class="text-success fs-6">{{ sale.final_sale_price|intcomma }} تومان</strong>
+                    </div>
+                    <a href="{% url 'sale_detail' sale.pk %}" class="btn-invoice-action px-3 py-1.5">
+                        <span>مشاهده فاکتور</span>
+                        <i class="fa-solid fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-secondary">
+            <i class="fa-solid fa-box-open fs-1 d-block mb-3 opacity-40"></i>
+            هیچ فاکتور فروشی یافت نشد.
+        </div>
+        {% endfor %}
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/jalalidatepicker.min.js' %}"></script>
-<script>jalaliDatepicker.startWatch({ separatorChar: "/" });</script>
+<script>
+    jalaliDatepicker.startWatch({
+        separatorChar: "/",
+        minDate: "attr",
+        maxDate: "attr"
+    });
+</script>
 {% endblock %}
